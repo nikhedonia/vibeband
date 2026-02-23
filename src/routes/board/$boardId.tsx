@@ -159,6 +159,8 @@ function BoardPage() {
   )
   const [worktrees, setWorktrees] = useState<Record<string, WorktreeInfo>>({})
   const [terminalPath, setTerminalPath] = useState<string | null>(null)
+  const [terminalHeight, setTerminalHeight] = useState(256)
+  const [terminalMaximized, setTerminalMaximized] = useState(false)
   const kanbanRef = useRef<KanbanBoardHandle>(null)
 
   async function refreshWorktrees(repoPath: string) {
@@ -334,10 +336,16 @@ function BoardPage() {
 
         {/* Terminal panel */}
         {terminalPath && (
-          <div className="h-64 flex-shrink-0">
+          <div
+            className={terminalMaximized ? 'flex-1 min-h-0' : 'flex-shrink-0'}
+            style={terminalMaximized ? undefined : { height: terminalHeight }}
+          >
             <TerminalPanel
               cwd={terminalPath}
               onClose={() => setTerminalPath(null)}
+              onHeightChange={(h) => { setTerminalMaximized(false); setTerminalHeight(h) }}
+              onToggleMaximize={() => setTerminalMaximized((v) => !v)}
+              isMaximized={terminalMaximized}
             />
           </div>
         )}

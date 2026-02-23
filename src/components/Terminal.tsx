@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { X } from 'lucide-react'
@@ -14,10 +14,46 @@ import {
 interface TerminalPanelProps {
   cwd: string
   onClose: () => void
+  onHeightChange?: (newHeight: number) => void
+  onToggleMaximize?: () => void
+  isMaximized?: boolean
 }
 
-export default function TerminalPanel({ cwd, onClose }: TerminalPanelProps) {
+export default function TerminalPanel({
+  cwd,
+  onClose,
+  onHeightChange,
+  onToggleMaximize,
+  isMaximized,
+}: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const dragStartY = useRef<number | null>(null)
+  const dragStartHeight = useRef<number>(0)
+
+  const handleDragMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      dragStartY.current = e.clientY
+      // read current rendered height from the panel's parent
+      const panel = (e.currentTarget as HTMLElement).closest('[data-terminal-panel]') as HTMLElement | null
+      dragStartHeight.current = panel?.offsetHeight ?? 256
+
+      const onMouseMove = (ev: MouseEvent) => {
+        if (dragStartY.current === null) return
+        const delta = dragStartY.current - ev.clientY
+        const newHeight = Math.max(80, dragStartHeight.current + delta)
+        onHeightChange?.(newHeight)
+      }
+      const onMouseUp = () => {
+        dragStartY.current = null
+        document.removeEventListener('mousemove', onMouseMove)
+        document.removeEventListener('mouseup', onMouseUp)
+      }
+      document.addEventListener('mousemove', onMouseMove)
+      document.addEventListener('mouseup', onMouseUp)
+    },
+    [onHeightChange],
+  )
 
   useEffect(() => {
     const el = containerRef.current
@@ -93,8 +129,19 @@ export default function TerminalPanel({ cwd, onClose }: TerminalPanelProps) {
   }, [cwd])
 
   return (
-    <div className="flex flex-col h-full bg-[#030712] border-t border-gray-800">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex-shrink-0">
+    <div data-terminal-panel className="flex flex-col h-full bg-[#030712] border-t border-gray-800">
+      {/* Drag resize handle */}
+      <div
+        data-testid="terminal-drag-handle"
+        onMouseDown={handleDragMouseDown}
+        className="h-1.5 w-full bg-gray-800 hover:bg-cyan-700 cursor-row-resize flex-shrink-0 transition-colors"
+        title="Drag to resize"
+      />
+      <div
+        className="flex items-center justify-between px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex-shrink-0 select-none"
+        onDoubleClick={onToggleMaximize}
+        title="Double-click to toggle maximize"
+      >
         <span className="text-xs text-gray-400 font-mono truncate max-w-[80%]">{cwd}</span>
         <button
           type="button"
