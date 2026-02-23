@@ -1,7 +1,9 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Home, BarChart2, Settings, Plus, Trello, Trash2 } from 'lucide-react'
+import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X } from 'lucide-react'
 import { useState } from 'react'
 import { createProject, deleteProject } from '../db/kanban'
+import type { TerminalSession } from '../contexts/TerminalSessions'
+import { useTerminalSessions } from '../contexts/TerminalSessions'
 
 interface Project {
   id: number
@@ -14,13 +16,16 @@ interface Project {
 interface SidebarProps {
   projects: Project[]
   onProjectsChange: () => void
+  terminalSessions: TerminalSession[]
 }
 
-export default function Sidebar({ projects, onProjectsChange }: SidebarProps) {
+export default function Sidebar({ projects, onProjectsChange, terminalSessions }: SidebarProps) {
   const [showNewBoard, setShowNewBoard] = useState(false)
   const [newBoardName, setNewBoardName] = useState('')
   const [creating, setCreating] = useState(false)
+  const [showTerminals, setShowTerminals] = useState(false)
   const navigate = useNavigate()
+  const { removeSession } = useTerminalSessions()
 
   async function handleCreateBoard(e: React.FormEvent) {
     e.preventDefault()
@@ -55,7 +60,67 @@ export default function Sidebar({ projects, onProjectsChange }: SidebarProps) {
       <nav className="flex flex-col gap-1 px-2 py-3">
         <NavLink to="/" icon={<Home size={18} />} label="Home" />
         <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" />
+        {/* Terminals toggle */}
+        <button
+          type="button"
+          onClick={() => setShowTerminals((v) => !v)}
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+            showTerminals
+              ? 'bg-gray-800 text-white'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <Terminal size={18} />
+          <span>Terminals</span>
+          {terminalSessions.length > 0 && (
+            <span className="ml-auto bg-cyan-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
+              {terminalSessions.length}
+            </span>
+          )}
+        </button>
       </nav>
+
+      {/* Terminal sessions list */}
+      {showTerminals && (
+        <div className="px-2 pb-2 border-b border-gray-800">
+          {terminalSessions.length === 0 ? (
+            <p className="text-xs text-gray-600 px-2 py-1">No open terminals</p>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {terminalSessions.map((s) => (
+                <div
+                  key={s.id}
+                  className="group flex items-start gap-2 px-2 py-1.5 rounded-md hover:bg-gray-800 transition-colors"
+                >
+                  <button
+                    type="button"
+                    className="flex-1 text-left min-w-0"
+                    onClick={() =>
+                      navigate({
+                        to: '/board/$boardId',
+                        params: { boardId: String(s.projectId) },
+                      })
+                    }
+                  >
+                    <p className="text-xs text-gray-300 truncate font-medium">
+                      {s.ticketTitle ?? s.projectName}
+                    </p>
+                    <p className="text-xs text-gray-500 font-mono truncate">{s.cwd.split('/').pop()}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSession(s.id)}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-gray-500 hover:text-red-400 transition-opacity flex-shrink-0 mt-0.5"
+                    title="Close terminal"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Projects list */}
       <div className="flex-1 overflow-y-auto px-2 py-2">

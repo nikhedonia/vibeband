@@ -51,7 +51,8 @@ interface KanbanBoardProps {
   onTicketSelect: (ticket: Ticket | null) => void
   onTicketMoved?: (ticket: Ticket, column: Column) => void
   worktrees?: Record<string, WorktreeInfo>
-  onOpenTerminal?: (path: string) => void
+  onOpenTerminal?: (path: string, ticket: Ticket) => void
+  terminalCountsByTicket?: Record<number, number>
 }
 
 export default function KanbanBoard({
@@ -64,6 +65,7 @@ export default function KanbanBoard({
   onTicketMoved,
   worktrees = {},
   onOpenTerminal,
+  terminalCountsByTicket = {},
 }: KanbanBoardProps) {
   const { notify } = useNotifications()
   const [columns, setColumns] = useState<Column[]>(initialColumns)
@@ -284,7 +286,15 @@ export default function KanbanBoard({
                       {ticket.content}
                     </p>
                   )}
-                  <p className="text-xs text-gray-600 mt-2">#{ticket.id}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-gray-600">#{ticket.id}</p>
+                    {(terminalCountsByTicket[ticket.id] ?? 0) > 0 && (
+                      <span className="flex items-center gap-0.5 text-xs text-cyan-400 bg-cyan-900/40 px-1.5 py-0.5 rounded-full">
+                        <Terminal size={9} />
+                        {terminalCountsByTicket[ticket.id]}
+                      </span>
+                    )}
+                  </div>
                   {wt && (
                     <div
                       className="mt-2 pt-2 border-t border-gray-600 flex items-center gap-1.5 flex-wrap"
@@ -324,7 +334,7 @@ export default function KanbanBoard({
                       <button
                         type="button"
                         title="Open terminal in worktree"
-                        onClick={() => onOpenTerminal?.(wt.path)}
+                        onClick={() => onOpenTerminal?.(wt.path, ticket)}
                         className="p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
                       >
                         <Terminal size={11} />

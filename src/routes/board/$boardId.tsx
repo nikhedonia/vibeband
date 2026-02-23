@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
   GitBranch,
   ExternalLink,
@@ -14,8 +14,9 @@ import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
 import MarkdownEditor from '../../components/kanban/MarkdownEditor'
-import TerminalPanel from '../../components/Terminal'
+import TerminalTabs from '../../components/TerminalTabs'
 import { useNotifications } from '../../components/Notifications'
+import { useTerminalSessions } from '../../contexts/TerminalSessions'
 import { slugify } from '../../utils/slugify'
 
 export const Route = createFileRoute('/board/$boardId')({
@@ -150,6 +151,13 @@ function isLocalPath(url: string): boolean {
 function BoardPage() {
   const { project, columns, tickets } = Route.useLoaderData()
   const { notify } = useNotifications()
+  const {
+    addSession,
+    removeSession,
+    setBackendSessionId,
+    closeSessionsForTicket,
+    getSessionsForProject,
+  } = useTerminalSessions()
 
   const [repoUrl, setRepoUrl] = useState(project.repoUrl ?? '')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
@@ -158,10 +166,28 @@ function BoardPage() {
     isLocalPath(project.repoUrl ?? '') ? (project.repoUrl ?? undefined) : undefined,
   )
   const [worktrees, setWorktrees] = useState<Record<string, WorktreeInfo>>({})
-  const [terminalPath, setTerminalPath] = useState<string | null>(null)
   const [terminalHeight, setTerminalHeight] = useState(256)
   const [terminalMaximized, setTerminalMaximized] = useState(false)
+  const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null)
   const kanbanRef = useRef<KanbanBoardHandle>(null)
+
+  const projectSessions = getSessionsForProject(project.id)
+
+  // Auto-select a tab when sessions change
+  useEffect(() => {
+    if (projectSessions.length > 0 && (activeTerminalId === null || !projectSessions.find((s) => s.id === activeTerminalId))) {
+      setActiveTerminalId(projectSessions[projectSessions.length - 1].id)
+    }
+    if (projectSessions.length === 0) setActiveTerminalId(null)
+  }, [projectSessions, activeTerminalId])
+
+  const terminalCountsByTicket = useMemo(() => {
+    const counts: Record<number, number> = {}
+    for (const s of projectSessions) {
+      if (s.ticketId != null) counts[s.ticketId] = (counts[s.ticketId] ?? 0) + 1
+    }
+    return counts
+  }, [projectSessions])
 
   async function refreshWorktrees(repoPath: string) {
     try {
@@ -260,6 +286,8 @@ function BoardPage() {
         notify(`Worktree error: ${e}`, 'error')
       }
     } else if (colName === 'done') {
+      // Close any open terminal sessions for this ticket
+      closeSessionsForTicket(ticket.id)
       // Remove ticket worktree
       const worktreePath = `/var/tmp/${projectSlug}/${ticketSlug}`
       try {
@@ -318,7 +346,17 @@ function BoardPage() {
               onTicketSelect={handleTicketSelect}
               onTicketMoved={handleTicketMoved}
               worktrees={worktrees}
-              onOpenTerminal={(path) => setTerminalPath(path)}
+              terminalCountsByTicket={terminalCountsByTicket}
+              onOpenTerminal={(path, ticket) => {
+                const id = addSession({
+                  cwd: path,
+                  projectId: project.id,
+                  projectName: project.name,
+                  ticketId: ticket.id,
+                  ticketTitle: ticket.title,
+                })
+                setActiveTerminalId(id)
+              }}
             />
           </div>
 
@@ -334,15 +372,30 @@ function BoardPage() {
           )}
         </div>
 
-        {/* Terminal panel */}
-        {terminalPath && (
+        {/* Terminal tabs panel */}
+        {projectSessions.length > 0 && (
           <div
             className={terminalMaximized ? 'flex-1 min-h-0' : 'flex-shrink-0'}
             style={terminalMaximized ? undefined : { height: terminalHeight }}
           >
-            <TerminalPanel
-              cwd={terminalPath}
-              onClose={() => setTerminalPath(null)}
+            <TerminalTabs
+              sessions={projectSessions}
+              activeId={activeTerminalId}
+              onActivate={setActiveTerminalId}
+              onClose={removeSession}
+              onSetBackendSessionId={setBackendSessionId}
+              onAddSession={
+                localRepo
+                  ? () => {
+                      const id = addSession({
+                        cwd: localRepo,
+                        projectId: project.id,
+                        projectName: project.name,
+                      })
+                      setActiveTerminalId(id)
+                    }
+                  : undefined
+              }
               onHeightChange={(h) => { setTerminalMaximized(false); setTerminalHeight(h) }}
               onToggleMaximize={() => setTerminalMaximized((v) => !v)}
               isMaximized={terminalMaximized}
