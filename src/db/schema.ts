@@ -10,3 +10,46 @@ export const todos = sqliteTable('todos', {
     sql`(unixepoch())`,
   ),
 })
+
+export const projects = sqliteTable('projects', {
+  id: integer({ mode: 'number' }).primaryKey({ autoIncrement: true }),
+  name: text().notNull(),
+  description: text().default(''),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+})
+
+export const columns = sqliteTable('columns', {
+  id: integer({ mode: 'number' }).primaryKey({ autoIncrement: true }),
+  projectId: integer('project_id', { mode: 'number' })
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  name: text().notNull(),
+  position: integer({ mode: 'number' }).notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+})
+
+export const tickets = sqliteTable('tickets', {
+  id: integer({ mode: 'number' }).primaryKey({ autoIncrement: true }),
+  projectId: integer('project_id', { mode: 'number' })
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  columnId: integer('column_id', { mode: 'number' })
+    .notNull()
+    .references(() => columns.id, { onDelete: 'cascade' }),
+  title: text().notNull(),
+  content: text().default(''),
+  position: integer({ mode: 'number' }).notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+})
