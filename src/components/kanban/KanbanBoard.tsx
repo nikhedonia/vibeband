@@ -1,5 +1,5 @@
 import { useState, useRef, useImperativeHandle } from 'react'
-import { Plus, MoreHorizontal, X, Check, GitBranch, Clipboard, Terminal } from 'lucide-react'
+import { Plus, MoreHorizontal, X, Check, GitBranch, Clipboard, Terminal, Code2 } from 'lucide-react'
 import {
   createTicket,
   createColumn,
@@ -8,6 +8,7 @@ import {
   deleteColumn,
 } from '../../db/kanban'
 import { slugify } from '../../utils/slugify'
+import { useNotifications } from '../Notifications'
 
 interface Column {
   id: number
@@ -50,6 +51,7 @@ interface KanbanBoardProps {
   onTicketSelect: (ticket: Ticket | null) => void
   onTicketMoved?: (ticket: Ticket, column: Column) => void
   worktrees?: Record<string, WorktreeInfo>
+  onOpenTerminal?: (path: string) => void
 }
 
 export default function KanbanBoard({
@@ -61,7 +63,9 @@ export default function KanbanBoard({
   onTicketSelect,
   onTicketMoved,
   worktrees = {},
+  onOpenTerminal,
 }: KanbanBoardProps) {
+  const { notify } = useNotifications()
   const [columns, setColumns] = useState<Column[]>(initialColumns)
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
   const [addingTicket, setAddingTicket] = useState<number | null>(null)
@@ -293,20 +297,34 @@ export default function KanbanBoard({
                       <button
                         type="button"
                         title="Copy worktree path"
-                        onClick={() => navigator.clipboard.writeText(wt.path)}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(wt.path)
+                            notify(`Copied: ${wt.path}`, 'success')
+                          } catch {
+                            notify('Failed to copy path', 'error')
+                          }
+                        }}
                         className="ml-auto p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
                       >
                         <Clipboard size={11} />
                       </button>
                       <button
                         type="button"
-                        title="Open terminal in worktree"
+                        title="Open in VS Code"
                         onClick={() => {
-                          // Open terminal by creating a shell command via a data URL
                           const el = document.createElement('a')
                           el.href = `vscode://file${wt.path}`
                           el.click()
                         }}
+                        className="p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <Code2 size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Open terminal in worktree"
+                        onClick={() => onOpenTerminal?.(wt.path)}
                         className="p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
                       >
                         <Terminal size={11} />

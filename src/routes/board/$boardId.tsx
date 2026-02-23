@@ -14,6 +14,7 @@ import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
 import MarkdownEditor from '../../components/kanban/MarkdownEditor'
+import TerminalPanel from '../../components/Terminal'
 import { useNotifications } from '../../components/Notifications'
 import { slugify } from '../../utils/slugify'
 
@@ -157,6 +158,7 @@ function BoardPage() {
     isLocalPath(project.repoUrl ?? '') ? (project.repoUrl ?? undefined) : undefined,
   )
   const [worktrees, setWorktrees] = useState<Record<string, WorktreeInfo>>({})
+  const [terminalPath, setTerminalPath] = useState<string | null>(null)
   const kanbanRef = useRef<KanbanBoardHandle>(null)
 
   async function refreshWorktrees(repoPath: string) {
@@ -300,30 +302,44 @@ function BoardPage() {
       </div>
 
       {/* Board body — split pane */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Kanban board */}
-        <div className="flex-1 overflow-auto p-4">
-          <KanbanBoard
-            ref={kanbanRef}
-            projectId={project.id}
-            initialColumns={columns}
-            initialTickets={tickets}
-            selectedTicketId={selectedTicket?.id ?? null}
-            onTicketSelect={handleTicketSelect}
-            onTicketMoved={handleTicketMoved}
-            worktrees={worktrees}
-          />
+      <div className="flex-1 flex overflow-hidden flex-col">
+        {/* Kanban + Editor row */}
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* Kanban board */}
+          <div className="flex-1 overflow-auto p-4">
+            <KanbanBoard
+              ref={kanbanRef}
+              projectId={project.id}
+              initialColumns={columns}
+              initialTickets={tickets}
+              selectedTicketId={selectedTicket?.id ?? null}
+              onTicketSelect={handleTicketSelect}
+              onTicketMoved={handleTicketMoved}
+              worktrees={worktrees}
+              onOpenTerminal={(path) => setTerminalPath(path)}
+            />
+          </div>
+
+          {/* Editor panel */}
+          {editorOpen && (
+            <MarkdownEditor
+              ticket={selectedTicket}
+              onClose={() => setSelectedTicket(null)}
+              onSave={handleEditorSave}
+              onDelete={handleEditorDelete}
+              repoPath={localRepo}
+            />
+          )}
         </div>
 
-        {/* Editor panel */}
-        {editorOpen && (
-          <MarkdownEditor
-            ticket={selectedTicket}
-            onClose={() => setSelectedTicket(null)}
-            onSave={handleEditorSave}
-            onDelete={handleEditorDelete}
-            repoPath={localRepo}
-          />
+        {/* Terminal panel */}
+        {terminalPath && (
+          <div className="h-64 flex-shrink-0">
+            <TerminalPanel
+              cwd={terminalPath}
+              onClose={() => setTerminalPath(null)}
+            />
+          </div>
         )}
       </div>
     </div>
