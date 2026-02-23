@@ -1,6 +1,15 @@
 import { useAuth } from '@workos-inc/authkit-react'
 
+const workosEnabled = Boolean(
+  import.meta.env.VITE_WORKOS_CLIENT_ID && import.meta.env.VITE_WORKOS_API_HOSTNAME,
+)
+
 export default function SignInButton({ large }: { large?: boolean }) {
+  if (!workosEnabled) return null
+  return <SignInButtonInner large={large} />
+}
+
+function SignInButtonInner({ large }: { large?: boolean }) {
   const { user, isLoading, signIn, signOut } = useAuth()
 
   const buttonClasses = `${
