@@ -3,6 +3,13 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { X } from 'lucide-react'
 import '@xterm/xterm/css/xterm.css'
+import {
+  startTerminalSession,
+  pollTerminalOutput,
+  sendTerminalInput,
+  resizeTerminalSession,
+  stopTerminalSession,
+} from '../db/terminal'
 
 interface TerminalPanelProps {
   cwd: string
@@ -32,46 +39,55 @@ export default function TerminalPanel({ cwd, onClose }: TerminalPanelProps) {
     term.open(el)
     term.focus()
 
-    // Multiple deferred fits to handle flex layout settling
     requestAnimationFrame(() => {
       fitAddon.fit()
       setTimeout(() => fitAddon.fit(), 100)
     })
 
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${location.host}/ws/terminal?cwd=${encodeURIComponent(cwd)}`
-    const ws = new WebSocket(wsUrl)
+    let sessionId: string | null = null
+    let pollTimer: ReturnType<typeof setInterval> | null = null
+    let alive = true
 
-    ws.onopen = () => {
-      fitAddon.fit()
-      ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
-    }
-
-    ws.onmessage = (e: MessageEvent<string>) => {
-      term.write(e.data)
-    }
-
-    ws.onclose = () => {
-      term.write('\r\n\x1b[2m[connection closed]\x1b[0m\r\n')
-    }
-
-    term.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', data }))
+    startTerminalSession({ data: { cwd } }).then(({ sessionId: sid }) => {
+      if (!alive) {
+        stopTerminalSession({ data: { sessionId: sid } })
+        return
       }
+      sessionId = sid
+      fitAddon.fit()
+      resizeTerminalSession({ data: { sessionId: sid, cols: term.cols, rows: term.rows } })
+
+      pollTimer = setInterval(async () => {
+        if (!sessionId) return
+        try {
+          const { output } = await pollTerminalOutput({ data: { sessionId } })
+          if (output) term.write(output)
+        } catch {
+          // non-fatal poll failure
+        }
+      }, 100)
+    }).catch(() => {
+      term.write('\r\n\x1b[31m[failed to start terminal session]\x1b[0m\r\n')
+    })
+
+    const disposeData = term.onData((data) => {
+      if (sessionId) sendTerminalInput({ data: { sessionId, input: data } })
     })
 
     const observer = new ResizeObserver(() => {
       fitAddon.fit()
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+      if (sessionId) {
+        resizeTerminalSession({ data: { sessionId, cols: term.cols, rows: term.rows } })
       }
     })
     observer.observe(el)
 
     return () => {
+      alive = false
       observer.disconnect()
-      ws.close()
+      disposeData.dispose()
+      if (pollTimer) clearInterval(pollTimer)
+      if (sessionId) stopTerminalSession({ data: { sessionId } })
       term.dispose()
     }
   }, [cwd])
