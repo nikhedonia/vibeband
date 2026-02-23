@@ -268,8 +268,8 @@ export const listWorktrees = createServerFn({ method: 'GET' })
           const branch = ref.replace(/^refs\/heads\//, '')
           if (currentPath) worktrees.push({ path: currentPath, branch })
           currentPath = ''
-        } else if (line.startsWith('HEAD ') && currentPath) {
-          // detached HEAD — skip
+        } else if (line.trim() === 'detached') {
+          // detached HEAD — skip this worktree
           currentPath = ''
         }
       }
