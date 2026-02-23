@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   GitBranch,
   ExternalLink,
@@ -9,7 +9,7 @@ import {
   PanelRight,
 } from 'lucide-react'
 import { getBoardData, updateProject } from '../../db/kanban'
-import { createWorktree, ensureMainWorktree, removeWorktree } from '../../db/worktree'
+import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl } from '../../db/worktree'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
 import MarkdownEditor from '../../components/kanban/MarkdownEditor'
@@ -142,7 +142,7 @@ interface Column {
 }
 
 function isLocalPath(url: string): boolean {
-  return !!url && !url.startsWith('http://') && !url.startsWith('https://')
+  return !!url && !isRemoteUrl(url)
 }
 
 function BoardPage() {
@@ -152,9 +152,43 @@ function BoardPage() {
   const [repoUrl, setRepoUrl] = useState(project.repoUrl ?? '')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [editorOpen, setEditorOpen] = useState(false)
+  const [resolvedRepoPath, setResolvedRepoPath] = useState<string | undefined>(
+    isLocalPath(project.repoUrl ?? '') ? (project.repoUrl ?? undefined) : undefined,
+  )
   const kanbanRef = useRef<KanbanBoardHandle>(null)
 
-  const localRepo = isLocalPath(repoUrl) ? repoUrl : undefined
+  // When repoUrl changes, resolve to a local path (clone if remote)
+  async function resolveRepoPath(url: string): Promise<string | undefined> {
+    if (!url) return undefined
+    if (isLocalPath(url)) return url
+    // Remote URL — clone/fetch
+    const projectSlug = slugify(project.name)
+    try {
+      notify(`Cloning repository…`, 'info')
+      const result = await ensureRepoCloned({ data: { repoUrl: url, projectSlug } })
+      if (result.cloned) notify(`Repository cloned to ${result.path}`, 'success')
+      return result.path
+    } catch (e) {
+      notify(`Failed to clone repo: ${e}`, 'error')
+      return undefined
+    }
+  }
+
+  async function handleRepoUrlChange(url: string) {
+    setRepoUrl(url)
+    const resolved = await resolveRepoPath(url)
+    setResolvedRepoPath(resolved)
+  }
+
+  // Resolve on mount for remote URLs already saved
+  useEffect(() => {
+    if (repoUrl && isRemoteUrl(repoUrl)) {
+      resolveRepoPath(repoUrl).then(setResolvedRepoPath)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const localRepo = resolvedRepoPath
 
   function handleTicketSelect(ticket: Ticket | null) {
     setSelectedTicket(ticket)
@@ -219,7 +253,7 @@ function BoardPage() {
           <RepoUrlEditor
             projectId={project.id}
             initialUrl={project.repoUrl ?? ''}
-            onChange={setRepoUrl}
+            onChange={handleRepoUrlChange}
           />
         </div>
         <button

@@ -176,6 +176,45 @@ export const ensureMainWorktree = createServerFn({ method: 'POST' })
     return { path: worktreePath, created: true, branch: mainBranch }
   })
 
+// ── Remote repo cloning ───────────────────────────────────────────────────────
+
+export function isRemoteUrl(url: string): boolean {
+  return (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('git@') ||
+    url.includes('://')
+  )
+}
+
+export const ensureRepoCloned = createServerFn({ method: 'POST' })
+  .inputValidator((data: { repoUrl: string; projectSlug: string }) => data)
+  .handler(async ({ data }) => {
+    const { repoUrl, projectSlug } = data
+    const clonePath = `/var/tmp/${projectSlug}/repo`
+
+    mkdirSync(`/var/tmp/${projectSlug}`, { recursive: true })
+
+    if (existsSync(clonePath)) {
+      // Pull latest on the current branch silently
+      try {
+        execSync(`git -C "${clonePath}" fetch --all --prune`, {
+          stdio: 'pipe',
+          env: { ...process.env, GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o StrictHostKeyChecking=no' },
+        })
+      } catch {
+        // non-fatal — offline or auth issue
+      }
+      return { path: clonePath, cloned: false }
+    }
+
+    execSync(`git clone "${repoUrl}" "${clonePath}"`, {
+      stdio: 'pipe',
+      env: { ...process.env, GIT_SSH_COMMAND: 'ssh -o BatchMode=yes -o StrictHostKeyChecking=no' },
+    })
+    return { path: clonePath, cloned: true }
+  })
+
 // ── File browser ──────────────────────────────────────────────────────────────
 
 export const listProjectFiles = createServerFn({ method: 'GET' })
