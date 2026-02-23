@@ -148,31 +148,33 @@ export const ensureMainWorktree = createServerFn({ method: 'POST' })
       return { path: worktreePath, created: false }
     }
 
+    // Try to find the remote's default branch (main/master) first
     let mainBranch = 'main'
     try {
-      mainBranch = execSync(
-        `git -C "${repoPath}" symbolic-ref --short HEAD`,
+      const remoteHead = execSync(
+        `git -C "${repoPath}" remote show origin 2>/dev/null | grep 'HEAD branch' | awk '{print $NF}'`,
         { stdio: 'pipe' },
       )
         .toString()
         .trim()
+      if (remoteHead && remoteHead !== '(unknown)') mainBranch = remoteHead
     } catch {
-      try {
-        mainBranch = execSync(
-          `git -C "${repoPath}" rev-parse --abbrev-ref HEAD`,
-          { stdio: 'pipe' },
-        )
-          .toString()
-          .trim()
-      } catch {
-        // fallback to 'main'
-      }
+      // fallback to main
     }
 
-    execSync(
-      `git -C "${repoPath}" worktree add "${worktreePath}" "${mainBranch}"`,
-      { stdio: 'pipe' },
-    )
+    // Try to add worktree for the default branch; if it's already checked out, use --detach
+    try {
+      execSync(
+        `git -C "${repoPath}" worktree add "${worktreePath}" "${mainBranch}"`,
+        { stdio: 'pipe' },
+      )
+    } catch {
+      // Branch already checked out in this worktree — create a detached HEAD worktree
+      execSync(
+        `git -C "${repoPath}" worktree add --detach "${worktreePath}"`,
+        { stdio: 'pipe' },
+      )
+    }
     return { path: worktreePath, created: true, branch: mainBranch }
   })
 
