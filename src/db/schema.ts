@@ -15,6 +15,7 @@ export const projects = sqliteTable('projects', {
   id: integer({ mode: 'number' }).primaryKey({ autoIncrement: true }),
   name: text().notNull(),
   description: text().default(''),
+  repoUrl: text('repo_url').default(''),
   createdAt: integer('created_at', { mode: 'timestamp' }).default(
     sql`(unixepoch())`,
   ),

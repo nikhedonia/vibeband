@@ -16,7 +16,9 @@ export const getProjects = createServerFn({ method: 'GET' }).handler(
 )
 
 export const createProject = createServerFn({ method: 'POST' })
-  .inputValidator((data: { name: string; description?: string }) => data)
+  .inputValidator(
+    (data: { name: string; description?: string; repoUrl?: string }) => data,
+  )
   .handler(async ({ data }) => {
     const DEFAULT_COLUMNS = [
       'Backlog',
@@ -28,7 +30,11 @@ export const createProject = createServerFn({ method: 'POST' })
     ]
     const [project] = await db
       .insert(schema.projects)
-      .values({ name: data.name, description: data.description ?? '' })
+      .values({
+        name: data.name,
+        description: data.description ?? '',
+        repoUrl: data.repoUrl ?? '',
+      })
       .returning()
     for (let i = 0; i < DEFAULT_COLUMNS.length; i++) {
       await db
@@ -42,6 +48,28 @@ export const deleteProject = createServerFn({ method: 'POST' })
   .inputValidator((data: { id: number }) => data)
   .handler(async ({ data }) => {
     await db.delete(schema.projects).where(eq(schema.projects.id, data.id))
+  })
+
+export const updateProject = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (data: {
+      id: number
+      name?: string
+      description?: string
+      repoUrl?: string
+    }) => data,
+  )
+  .handler(async ({ data }) => {
+    const updates: Partial<typeof schema.projects.$inferInsert> = {}
+    if (data.name !== undefined) updates.name = data.name
+    if (data.description !== undefined) updates.description = data.description
+    if (data.repoUrl !== undefined) updates.repoUrl = data.repoUrl
+    const [project] = await db
+      .update(schema.projects)
+      .set(updates)
+      .where(eq(schema.projects.id, data.id))
+      .returning()
+    return project
   })
 
 // ── Columns ───────────────────────────────────────────────────────────────────
