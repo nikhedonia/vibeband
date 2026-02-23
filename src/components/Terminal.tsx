@@ -30,12 +30,16 @@ export default function TerminalPanel({ cwd, onClose }: TerminalPanelProps) {
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
     term.open(el)
+    term.focus()
 
-    // Defer fit until element is visible
-    requestAnimationFrame(() => fitAddon.fit())
+    // Multiple deferred fits to handle flex layout settling
+    requestAnimationFrame(() => {
+      fitAddon.fit()
+      setTimeout(() => fitAddon.fit(), 100)
+    })
 
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${location.host}/_ws/terminal?cwd=${encodeURIComponent(cwd)}`
+    const wsUrl = `${protocol}//${location.host}/ws/terminal?cwd=${encodeURIComponent(cwd)}`
     const ws = new WebSocket(wsUrl)
 
     ws.onopen = () => {
@@ -85,7 +89,7 @@ export default function TerminalPanel({ cwd, onClose }: TerminalPanelProps) {
           <X size={14} />
         </button>
       </div>
-      <div ref={containerRef} className="flex-1 overflow-hidden p-1" />
+      <div ref={containerRef} className="flex-1 overflow-hidden" style={{ minHeight: 0 }} />
     </div>
   )
 }
