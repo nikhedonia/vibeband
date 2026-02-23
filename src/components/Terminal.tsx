@@ -13,6 +13,17 @@ import {
 
 interface TerminalPanelProps {
   cwd: string
+  /** If provided, reconnects to an existing PTY session instead of starting a new one */
+  existingBackendSessionId?: string
+  /** Called once the backend session ID is known (new or reconnected) */
+  onBackendSessionStarted?: (sessionId: string) => void
+  /**
+   * When true the component will NOT kill the PTY session on unmount.
+   * Use this for retained sessions managed by an external context.
+   */
+  detach?: boolean
+  /** Hide the built-in drag handle + header bar (e.g. when used inside TerminalTabs) */
+  showHeader?: boolean
   onClose: () => void
   onHeightChange?: (newHeight: number) => void
   onToggleMaximize?: () => void
@@ -21,10 +32,15 @@ interface TerminalPanelProps {
 
 export default function TerminalPanel({
   cwd,
+  existingBackendSessionId,
+  onBackendSessionStarted,
+  detach = false,
+  showHeader = true,
   onClose,
   onHeightChange,
   onToggleMaximize,
-  isMaximized,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  isMaximized: _isMaximized,
 }: TerminalPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const dragStartY = useRef<number | null>(null)
@@ -80,18 +96,31 @@ export default function TerminalPanel({
       setTimeout(() => fitAddon.fit(), 100)
     })
 
-    let sessionId: string | null = null
+    let sessionId: string | null = existingBackendSessionId ?? null
     let pollTimer: ReturnType<typeof setInterval> | null = null
     let alive = true
 
-    startTerminalSession({ data: { cwd } }).then(({ sessionId: sid }) => {
-      if (!alive) {
-        stopTerminalSession({ data: { sessionId: sid } })
-        return
+    async function initSession() {
+      if (sessionId) {
+        // Reconnecting to existing PTY — just resize and start polling
+        fitAddon.fit()
+        resizeTerminalSession({ data: { sessionId, cols: term.cols, rows: term.rows } })
+      } else {
+        try {
+          const { sessionId: sid } = await startTerminalSession({ data: { cwd } })
+          if (!alive) {
+            stopTerminalSession({ data: { sessionId: sid } })
+            return
+          }
+          sessionId = sid
+          onBackendSessionStarted?.(sid)
+          fitAddon.fit()
+          resizeTerminalSession({ data: { sessionId: sid, cols: term.cols, rows: term.rows } })
+        } catch {
+          term.write('\r\n\x1b[31m[failed to start terminal session]\x1b[0m\r\n')
+          return
+        }
       }
-      sessionId = sid
-      fitAddon.fit()
-      resizeTerminalSession({ data: { sessionId: sid, cols: term.cols, rows: term.rows } })
 
       pollTimer = setInterval(async () => {
         if (!sessionId) return
@@ -102,9 +131,9 @@ export default function TerminalPanel({
           // non-fatal poll failure
         }
       }, 100)
-    }).catch(() => {
-      term.write('\r\n\x1b[31m[failed to start terminal session]\x1b[0m\r\n')
-    })
+    }
+
+    initSession()
 
     const disposeData = term.onData((data) => {
       if (sessionId) sendTerminalInput({ data: { sessionId, input: data } })
@@ -123,35 +152,39 @@ export default function TerminalPanel({
       observer.disconnect()
       disposeData.dispose()
       if (pollTimer) clearInterval(pollTimer)
-      if (sessionId) stopTerminalSession({ data: { sessionId } })
+      if (!detach && sessionId) stopTerminalSession({ data: { sessionId } })
       term.dispose()
     }
-  }, [cwd])
+  }, [cwd, existingBackendSessionId])
 
   return (
     <div data-terminal-panel className="flex flex-col h-full bg-[#030712] border-t border-gray-800">
-      {/* Drag resize handle */}
-      <div
-        data-testid="terminal-drag-handle"
-        onMouseDown={handleDragMouseDown}
-        className="h-1.5 w-full bg-gray-800 hover:bg-cyan-700 cursor-row-resize flex-shrink-0 transition-colors"
-        title="Drag to resize"
-      />
-      <div
-        className="flex items-center justify-between px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex-shrink-0 select-none"
-        onDoubleClick={onToggleMaximize}
-        title="Double-click to toggle maximize"
-      >
-        <span className="text-xs text-gray-400 font-mono truncate max-w-[80%]">{cwd}</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-gray-500 hover:text-white transition-colors ml-2"
-          title="Close terminal"
-        >
-          <X size={14} />
-        </button>
-      </div>
+      {showHeader && (
+        <>
+          {/* Drag resize handle */}
+          <div
+            data-testid="terminal-drag-handle"
+            onMouseDown={handleDragMouseDown}
+            className="h-1.5 w-full bg-gray-800 hover:bg-cyan-700 cursor-row-resize flex-shrink-0 transition-colors"
+            title="Drag to resize"
+          />
+          <div
+            className="flex items-center justify-between px-3 py-1.5 bg-gray-900 border-b border-gray-800 flex-shrink-0 select-none"
+            onDoubleClick={onToggleMaximize}
+            title="Double-click to toggle maximize"
+          >
+            <span className="text-xs text-gray-400 font-mono truncate max-w-[80%]">{cwd}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-500 hover:text-white transition-colors ml-2"
+              title="Close terminal"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </>
+      )}
       <div ref={containerRef} className="flex-1 overflow-hidden" style={{ minHeight: 0 }} />
     </div>
   )
