@@ -9,7 +9,8 @@ import {
   PanelRight,
 } from 'lucide-react'
 import { getBoardData, updateProject } from '../../db/kanban'
-import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl } from '../../db/worktree'
+import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl, listWorktrees, getWorktreeDiffStats } from '../../db/worktree'
+import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
 import MarkdownEditor from '../../components/kanban/MarkdownEditor'
@@ -155,7 +156,27 @@ function BoardPage() {
   const [resolvedRepoPath, setResolvedRepoPath] = useState<string | undefined>(
     isLocalPath(project.repoUrl ?? '') ? (project.repoUrl ?? undefined) : undefined,
   )
+  const [worktrees, setWorktrees] = useState<Record<string, WorktreeInfo>>({})
   const kanbanRef = useRef<KanbanBoardHandle>(null)
+
+  async function refreshWorktrees(repoPath: string) {
+    try {
+      const { worktrees: wts } = await listWorktrees({ data: { repoPath } })
+      const projectSlug = slugify(project.name)
+      const map: Record<string, WorktreeInfo> = {}
+      for (const wt of wts) {
+        // derive slug from path: /var/tmp/{projectSlug}/{branchSlug}
+        const branchSlug = wt.path.replace(`/var/tmp/${projectSlug}/`, '')
+        if (!branchSlug || branchSlug === 'main' || branchSlug === 'repo') continue
+        // fetch diff stats (non-blocking per worktree)
+        const stats = await getWorktreeDiffStats({ data: { worktreePath: wt.path } }).catch(() => ({ added: 0, deleted: 0, changed: 0 }))
+        map[branchSlug] = { ...wt, ...stats }
+      }
+      setWorktrees(map)
+    } catch {
+      // non-fatal
+    }
+  }
 
   // When repoUrl changes, resolve to a local path (clone if remote)
   async function resolveRepoPath(url: string): Promise<string | undefined> {
@@ -178,12 +199,18 @@ function BoardPage() {
     setRepoUrl(url)
     const resolved = await resolveRepoPath(url)
     setResolvedRepoPath(resolved)
+    if (resolved) refreshWorktrees(resolved)
   }
 
-  // Resolve on mount for remote URLs already saved
+  // Resolve on mount for remote URLs already saved; refresh worktrees for local paths
   useEffect(() => {
     if (repoUrl && isRemoteUrl(repoUrl)) {
-      resolveRepoPath(repoUrl).then(setResolvedRepoPath)
+      resolveRepoPath(repoUrl).then((p) => {
+        setResolvedRepoPath(p)
+        if (p) refreshWorktrees(p)
+      })
+    } else if (resolvedRepoPath) {
+      refreshWorktrees(resolvedRepoPath)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -224,6 +251,7 @@ function BoardPage() {
         if (ticketResult.created) {
           notify(`Worktree created: ${ticketResult.path}`, 'success')
         }
+        refreshWorktrees(localRepo)
       } catch (e) {
         notify(`Worktree error: ${e}`, 'error')
       }
@@ -235,6 +263,7 @@ function BoardPage() {
         if (result.removed) {
           notify(`Worktree removed: ${worktreePath}`, 'info')
         }
+        refreshWorktrees(localRepo)
       } catch (e) {
         notify(`Worktree removal error: ${e}`, 'error')
       }
@@ -282,6 +311,7 @@ function BoardPage() {
             selectedTicketId={selectedTicket?.id ?? null}
             onTicketSelect={handleTicketSelect}
             onTicketMoved={handleTicketMoved}
+            worktrees={worktrees}
           />
         </div>
 

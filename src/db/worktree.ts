@@ -162,16 +162,17 @@ export const ensureMainWorktree = createServerFn({ method: 'POST' })
       // fallback to main
     }
 
-    // Try to add worktree for the default branch; if it's already checked out, use --detach
+    // Try to add worktree for the default branch; if already checked out, create a new tracking branch
     try {
       execSync(
         `git -C "${repoPath}" worktree add "${worktreePath}" "${mainBranch}"`,
         { stdio: 'pipe' },
       )
     } catch {
-      // Branch already checked out in this worktree — create a detached HEAD worktree
+      // Branch already checked out — create a new local branch tracking the remote default
+      const newBranch = `${mainBranch}-workspace`
       execSync(
-        `git -C "${repoPath}" worktree add --detach "${worktreePath}"`,
+        `git -C "${repoPath}" worktree add -b "${newBranch}" "${worktreePath}" "origin/${mainBranch}"`,
         { stdio: 'pipe' },
       )
     }
@@ -239,5 +240,68 @@ export const readProjectFile = createServerFn({ method: 'GET' })
       return { content }
     } catch {
       throw new Error('File not readable')
+    }
+  })
+
+// ── Worktree listing & diff stats ─────────────────────────────────────────────
+
+export interface WorktreeInfo {
+  path: string
+  branch: string
+}
+
+export const listWorktrees = createServerFn({ method: 'GET' })
+  .inputValidator((data: { repoPath: string }) => data)
+  .handler(async ({ data }) => {
+    if (!existsSync(data.repoPath)) return { worktrees: [] as WorktreeInfo[] }
+    try {
+      const out = execSync(`git -C "${data.repoPath}" worktree list --porcelain`, {
+        stdio: 'pipe',
+      }).toString()
+      const worktrees: WorktreeInfo[] = []
+      let currentPath = ''
+      for (const line of out.split('\n')) {
+        if (line.startsWith('worktree ')) {
+          currentPath = line.slice('worktree '.length).trim()
+        } else if (line.startsWith('branch ')) {
+          const ref = line.slice('branch '.length).trim()
+          const branch = ref.replace(/^refs\/heads\//, '')
+          if (currentPath) worktrees.push({ path: currentPath, branch })
+          currentPath = ''
+        } else if (line.startsWith('HEAD ') && currentPath) {
+          // detached HEAD — skip
+          currentPath = ''
+        }
+      }
+      return { worktrees }
+    } catch {
+      return { worktrees: [] as WorktreeInfo[] }
+    }
+  })
+
+export const getWorktreeDiffStats = createServerFn({ method: 'GET' })
+  .inputValidator((data: { worktreePath: string; baseBranch?: string }) => data)
+  .handler(async ({ data }) => {
+    const base = data.baseBranch ?? 'main'
+    if (!existsSync(data.worktreePath)) return { added: 0, deleted: 0, changed: 0 }
+    try {
+      // Try origin/base first, fall back to base
+      let ref = `origin/${base}`
+      try {
+        execSync(`git -C "${data.worktreePath}" rev-parse --verify "${ref}"`, { stdio: 'pipe' })
+      } catch {
+        ref = base
+      }
+      const out = execSync(
+        `git -C "${data.worktreePath}" diff --shortstat "${ref}"`,
+        { stdio: 'pipe' },
+      ).toString().trim()
+      // e.g. " 3 files changed, 42 insertions(+), 5 deletions(-)"
+      const changed = Number(out.match(/(\d+) files? changed/)?.[1] ?? 0)
+      const added = Number(out.match(/(\d+) insertion/)?.[1] ?? 0)
+      const deleted = Number(out.match(/(\d+) deletion/)?.[1] ?? 0)
+      return { added, deleted, changed }
+    } catch {
+      return { added: 0, deleted: 0, changed: 0 }
     }
   })

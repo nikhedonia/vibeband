@@ -1,5 +1,5 @@
 import { useState, useRef, useImperativeHandle } from 'react'
-import { Plus, MoreHorizontal, X, Check } from 'lucide-react'
+import { Plus, MoreHorizontal, X, Check, GitBranch, Clipboard, Terminal } from 'lucide-react'
 import {
   createTicket,
   createColumn,
@@ -7,6 +7,7 @@ import {
   updateColumn,
   deleteColumn,
 } from '../../db/kanban'
+import { slugify } from '../../utils/slugify'
 
 interface Column {
   id: number
@@ -27,6 +28,14 @@ interface Ticket {
   updatedAt: Date | null
 }
 
+export interface WorktreeInfo {
+  path: string
+  branch: string
+  added?: number
+  deleted?: number
+  changed?: number
+}
+
 export interface KanbanBoardHandle {
   updateTicket: (ticket: Ticket) => void
   deleteTicket: (id: number) => void
@@ -40,6 +49,7 @@ interface KanbanBoardProps {
   selectedTicketId?: number | null
   onTicketSelect: (ticket: Ticket | null) => void
   onTicketMoved?: (ticket: Ticket, column: Column) => void
+  worktrees?: Record<string, WorktreeInfo>
 }
 
 export default function KanbanBoard({
@@ -50,6 +60,7 @@ export default function KanbanBoard({
   selectedTicketId,
   onTicketSelect,
   onTicketMoved,
+  worktrees = {},
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Column[]>(initialColumns)
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
@@ -245,7 +256,10 @@ export default function KanbanBoard({
 
             {/* Tickets */}
             <div className="flex-1 overflow-y-auto px-2 space-y-2 min-h-8">
-              {colTickets.map((ticket) => (
+              {colTickets.map((ticket) => {
+                const tSlug = slugify(ticket.title) || `ticket-${ticket.id}`
+                const wt = worktrees[tSlug]
+                return (
                 <div
                   key={ticket.id}
                   draggable
@@ -267,8 +281,48 @@ export default function KanbanBoard({
                     </p>
                   )}
                   <p className="text-xs text-gray-600 mt-2">#{ticket.id}</p>
+                  {wt && (
+                    <div
+                      className="mt-2 pt-2 border-t border-gray-600 flex items-center gap-1.5 flex-wrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <GitBranch size={11} className="text-indigo-400 flex-shrink-0" />
+                      <span className="text-xs text-indigo-300 font-mono truncate max-w-[120px]" title={wt.branch}>
+                        {wt.branch}
+                      </span>
+                      <button
+                        type="button"
+                        title="Copy worktree path"
+                        onClick={() => navigator.clipboard.writeText(wt.path)}
+                        className="ml-auto p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <Clipboard size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        title="Open terminal in worktree"
+                        onClick={() => {
+                          // Open terminal by creating a shell command via a data URL
+                          const el = document.createElement('a')
+                          el.href = `vscode://file${wt.path}`
+                          el.click()
+                        }}
+                        className="p-0.5 rounded hover:bg-gray-600 text-gray-400 hover:text-white transition-colors"
+                      >
+                        <Terminal size={11} />
+                      </button>
+                      {(wt.changed ?? 0) > 0 || (wt.added ?? 0) > 0 || (wt.deleted ?? 0) > 0 ? (
+                        <div className="flex items-center gap-1 text-xs ml-0.5">
+                          {(wt.added ?? 0) > 0 && <span className="text-green-400">+{wt.added}</span>}
+                          {(wt.deleted ?? 0) > 0 && <span className="text-red-400">-{wt.deleted}</span>}
+                          {(wt.changed ?? 0) > 0 && <span className="text-yellow-500">~{wt.changed}</span>}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
-              ))}
+                )
+              })}
 
               {/* Drop zone hint */}
               {isOver && draggingTicketId !== null && (
