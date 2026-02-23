@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useImperativeHandle } from 'react'
 import { Plus, MoreHorizontal, X, Check } from 'lucide-react'
 import {
   createTicket,
@@ -7,7 +7,6 @@ import {
   updateColumn,
   deleteColumn,
 } from '../../db/kanban'
-import MarkdownEditor from './MarkdownEditor'
 
 interface Column {
   id: number
@@ -28,20 +27,32 @@ interface Ticket {
   updatedAt: Date | null
 }
 
+export interface KanbanBoardHandle {
+  updateTicket: (ticket: Ticket) => void
+  deleteTicket: (id: number) => void
+}
+
 interface KanbanBoardProps {
+  ref?: React.Ref<KanbanBoardHandle>
   projectId: number
   initialColumns: Column[]
   initialTickets: Ticket[]
+  selectedTicketId?: number | null
+  onTicketSelect: (ticket: Ticket | null) => void
+  onTicketMoved?: (ticket: Ticket, column: Column) => void
 }
 
 export default function KanbanBoard({
+  ref,
   projectId,
   initialColumns,
   initialTickets,
+  selectedTicketId,
+  onTicketSelect,
+  onTicketMoved,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState<Column[]>(initialColumns)
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets)
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [addingTicket, setAddingTicket] = useState<number | null>(null)
   const [newTicketTitle, setNewTicketTitle] = useState('')
   const [addingColumn, setAddingColumn] = useState(false)
@@ -54,6 +65,16 @@ export default function KanbanBoard({
   const dragOverColumnId = useRef<number | null>(null)
   const [draggingTicketId, setDraggingTicketId] = useState<number | null>(null)
   const [dragOverCol, setDragOverCol] = useState<number | null>(null)
+
+  // Expose imperative API for parent to sync ticket updates from the editor
+  useImperativeHandle(ref, () => ({
+    updateTicket: (ticket: Ticket) => {
+      setTickets((prev) => prev.map((t) => (t.id === ticket.id ? ticket : t)))
+    },
+    deleteTicket: (id: number) => {
+      setTickets((prev) => prev.filter((t) => t.id !== id))
+    },
+  }))
 
   // ── Tickets ──────────────────────────────────────────────────────────────────
 
@@ -103,24 +124,18 @@ export default function KanbanBoard({
     const colTickets = tickets.filter((t) => t.columnId === columnId)
     const newPosition = colTickets.length
 
+    const updatedTicket = { ...ticket, columnId, position: newPosition }
     setTickets((prev) =>
-      prev.map((t) =>
-        t.id === ticketId ? { ...t, columnId, position: newPosition } : t,
-      ),
+      prev.map((t) => (t.id === ticketId ? updatedTicket : t)),
     )
 
     await updateTicket({ data: { id: ticketId, columnId, position: newPosition } })
+
+    // Notify parent for worktree management
+    const col = columns.find((c) => c.id === columnId)
+    if (col) onTicketMoved?.(updatedTicket, col)
+
     handleTicketDragEnd()
-  }
-
-  function handleTicketSave(updated: Ticket) {
-    setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
-    setSelectedTicket(updated)
-  }
-
-  function handleTicketDelete(id: number) {
-    setTickets((prev) => prev.filter((t) => t.id !== id))
-    setSelectedTicket(null)
   }
 
   // ── Columns ───────────────────────────────────────────────────────────────────
@@ -236,10 +251,12 @@ export default function KanbanBoard({
                   draggable
                   onDragStart={(e) => handleTicketDragStart(e, ticket.id)}
                   onDragEnd={handleTicketDragEnd}
-                  onClick={() => setSelectedTicket(ticket)}
-                  className={`bg-gray-700 hover:bg-gray-600 rounded-lg p-3 cursor-pointer border border-transparent hover:border-gray-500 transition-all select-none ${
-                    draggingTicketId === ticket.id ? 'opacity-40 scale-95' : ''
-                  }`}
+                  onClick={() => onTicketSelect(ticket)}
+                  className={`bg-gray-700 hover:bg-gray-600 rounded-lg p-3 cursor-pointer border transition-all select-none ${
+                    selectedTicketId === ticket.id
+                      ? 'border-cyan-500'
+                      : 'border-transparent hover:border-gray-500'
+                  } ${draggingTicketId === ticket.id ? 'opacity-40 scale-95' : ''}`}
                 >
                   <p className="text-sm text-gray-100 font-medium leading-snug">
                     {ticket.title}
@@ -289,7 +306,10 @@ export default function KanbanBoard({
                       Add
                     </button>
                     <button
-                      onClick={() => { setAddingTicket(null); setNewTicketTitle('') }}
+                      onClick={() => {
+                        setAddingTicket(null)
+                        setNewTicketTitle('')
+                      }}
                       className="flex-1 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
                     >
                       Cancel
@@ -319,7 +339,10 @@ export default function KanbanBoard({
               onChange={(e) => setNewColumnName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddColumn()
-                if (e.key === 'Escape') { setAddingColumn(false); setNewColumnName('') }
+                if (e.key === 'Escape') {
+                  setAddingColumn(false)
+                  setNewColumnName('')
+                }
               }}
               placeholder="Column name…"
               className="w-full bg-gray-700 text-white text-sm px-2 py-1.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-500 mb-2"
@@ -332,7 +355,10 @@ export default function KanbanBoard({
                 Add Column
               </button>
               <button
-                onClick={() => { setAddingColumn(false); setNewColumnName('') }}
+                onClick={() => {
+                  setAddingColumn(false)
+                  setNewColumnName('')
+                }}
                 className="flex-1 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors"
               >
                 Cancel
@@ -348,14 +374,6 @@ export default function KanbanBoard({
           </button>
         )}
       </div>
-
-      {/* Markdown editor panel */}
-      <MarkdownEditor
-        ticket={selectedTicket}
-        onClose={() => setSelectedTicket(null)}
-        onSave={handleTicketSave}
-        onDelete={handleTicketDelete}
-      />
     </div>
   )
 }

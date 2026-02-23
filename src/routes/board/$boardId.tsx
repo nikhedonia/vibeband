@@ -1,8 +1,20 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useState, useRef } from 'react'
-import { GitBranch, ExternalLink, Pencil, Check, X } from 'lucide-react'
+import {
+  GitBranch,
+  ExternalLink,
+  Pencil,
+  Check,
+  X,
+  PanelRight,
+} from 'lucide-react'
 import { getBoardData, updateProject } from '../../db/kanban'
+import { createWorktree, ensureMainWorktree, removeWorktree } from '../../db/worktree'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
+import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
+import MarkdownEditor from '../../components/kanban/MarkdownEditor'
+import { useNotifications } from '../../components/Notifications'
+import { slugify } from '../../utils/slugify'
 
 export const Route = createFileRoute('/board/$boardId')({
   loader: async ({ params }) => {
@@ -22,14 +34,20 @@ export const Route = createFileRoute('/board/$boardId')({
   ),
 })
 
+// ── Repo URL editor ───────────────────────────────────────────────────────────
+
 function RepoUrlEditor({
   projectId,
   initialUrl,
-}: { projectId: number; initialUrl: string }) {
+  onChange,
+}: {
+  projectId: number
+  initialUrl: string
+  onChange?: (url: string) => void
+}) {
   const [editing, setEditing] = useState(false)
   const [url, setUrl] = useState(initialUrl)
   const [saved, setSaved] = useState(initialUrl)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const isRemote = saved.startsWith('http://') || saved.startsWith('https://')
 
@@ -37,6 +55,7 @@ function RepoUrlEditor({
     await updateProject({ data: { id: projectId, repoUrl: url } })
     setSaved(url)
     setEditing(false)
+    onChange?.(url)
   }
 
   function cancel() {
@@ -49,7 +68,6 @@ function RepoUrlEditor({
       <div className="flex items-center gap-2 mt-1">
         <GitBranch className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
         <input
-          ref={inputRef}
           autoFocus
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -60,20 +78,10 @@ function RepoUrlEditor({
           placeholder="https://github.com/org/repo or /local/path"
           className="text-xs bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-gray-200 w-72 focus:outline-none focus:border-indigo-500"
         />
-        <button
-          type="button"
-          onClick={save}
-          className="text-green-400 hover:text-green-300"
-          title="Save"
-        >
+        <button type="button" onClick={save} className="text-green-400 hover:text-green-300" title="Save">
           <Check className="w-3.5 h-3.5" />
         </button>
-        <button
-          type="button"
-          onClick={cancel}
-          className="text-gray-400 hover:text-gray-300"
-          title="Cancel"
-        >
+        <button type="button" onClick={cancel} className="text-gray-400 hover:text-gray-300" title="Cancel">
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -112,30 +120,147 @@ function RepoUrlEditor({
   )
 }
 
+// ── Board page ────────────────────────────────────────────────────────────────
+
+interface Ticket {
+  id: number
+  columnId: number
+  projectId: number
+  title: string
+  content: string | null
+  position: number
+  createdAt: Date | null
+  updatedAt: Date | null
+}
+
+interface Column {
+  id: number
+  projectId: number
+  name: string
+  position: number
+  createdAt: Date | null
+}
+
+function isLocalPath(url: string): boolean {
+  return !!url && !url.startsWith('http://') && !url.startsWith('https://')
+}
+
 function BoardPage() {
   const { project, columns, tickets } = Route.useLoaderData()
+  const { notify } = useNotifications()
+
+  const [repoUrl, setRepoUrl] = useState(project.repoUrl ?? '')
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [editorOpen, setEditorOpen] = useState(false)
+  const kanbanRef = useRef<KanbanBoardHandle>(null)
+
+  const localRepo = isLocalPath(repoUrl) ? repoUrl : undefined
+
+  function handleTicketSelect(ticket: Ticket | null) {
+    setSelectedTicket(ticket)
+    if (ticket && !editorOpen) setEditorOpen(true)
+  }
+
+  function handleEditorSave(updated: Ticket) {
+    setSelectedTicket(updated)
+    kanbanRef.current?.updateTicket(updated)
+  }
+
+  function handleEditorDelete(id: number) {
+    setSelectedTicket(null)
+    kanbanRef.current?.deleteTicket(id)
+  }
+
+  async function handleTicketMoved(ticket: Ticket, column: Column) {
+    if (!localRepo) return
+    const projectSlug = slugify(project.name)
+    const ticketSlug = slugify(ticket.title) || `ticket-${ticket.id}`
+    const colName = column.name.toLowerCase()
+
+    if (colName === 'in progress') {
+      // Create ticket worktree and ensure main worktree exists
+      try {
+        const [mainResult, ticketResult] = await Promise.all([
+          ensureMainWorktree({ data: { repoPath: localRepo, projectSlug } }),
+          createWorktree({ data: { repoPath: localRepo, projectSlug, branchSlug: ticketSlug } }),
+        ])
+        if (mainResult.created) {
+          notify(`Main worktree created: ${mainResult.path}`, 'info')
+        }
+        if (ticketResult.created) {
+          notify(`Worktree created: ${ticketResult.path}`, 'success')
+        }
+      } catch (e) {
+        notify(`Worktree error: ${e}`, 'error')
+      }
+    } else if (colName === 'done') {
+      // Remove ticket worktree
+      const worktreePath = `/var/tmp/${projectSlug}/${ticketSlug}`
+      try {
+        const result = await removeWorktree({ data: { repoPath: localRepo, worktreePath } })
+        if (result.removed) {
+          notify(`Worktree removed: ${worktreePath}`, 'info')
+        }
+      } catch (e) {
+        notify(`Worktree removal error: ${e}`, 'error')
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Board header */}
-      <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0">
-        <h1 className="text-xl font-bold text-white">{project.name}</h1>
-        {project.description && (
-          <p className="text-sm text-gray-400 mt-0.5">{project.description}</p>
-        )}
-        <RepoUrlEditor
-          projectId={project.id}
-          initialUrl={project.repoUrl ?? ''}
-        />
+      <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0 flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white">{project.name}</h1>
+          {project.description && (
+            <p className="text-sm text-gray-400 mt-0.5">{project.description}</p>
+          )}
+          <RepoUrlEditor
+            projectId={project.id}
+            initialUrl={project.repoUrl ?? ''}
+            onChange={setRepoUrl}
+          />
+        </div>
+        <button
+          onClick={() => setEditorOpen((v) => !v)}
+          title={editorOpen ? 'Hide editor' : 'Show editor'}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+            editorOpen
+              ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
+              : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+          }`}
+        >
+          <PanelRight size={16} />
+          <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
+        </button>
       </div>
 
-      {/* Board */}
-      <div className="flex-1 overflow-auto p-4">
-        <KanbanBoard
-          projectId={project.id}
-          initialColumns={columns}
-          initialTickets={tickets}
-        />
+      {/* Board body — split pane */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Kanban board */}
+        <div className="flex-1 overflow-auto p-4">
+          <KanbanBoard
+            ref={kanbanRef}
+            projectId={project.id}
+            initialColumns={columns}
+            initialTickets={tickets}
+            selectedTicketId={selectedTicket?.id ?? null}
+            onTicketSelect={handleTicketSelect}
+            onTicketMoved={handleTicketMoved}
+          />
+        </div>
+
+        {/* Editor panel */}
+        {editorOpen && (
+          <MarkdownEditor
+            ticket={selectedTicket}
+            onClose={() => setSelectedTicket(null)}
+            onSave={handleEditorSave}
+            onDelete={handleEditorDelete}
+            repoPath={localRepo}
+          />
+        )}
       </div>
     </div>
   )

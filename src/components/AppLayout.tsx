@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from './Sidebar'
 import { getProjects } from '../db/kanban'
+import { NotificationsProvider } from './Notifications'
 
 interface Project {
   id: number
@@ -23,11 +24,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [loadProjects])
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar projects={projects} onProjectsChange={loadProjects} />
-      <main className="flex-1 ml-56 overflow-hidden flex flex-col">
-        {children}
-      </main>
-    </div>
+    <NotificationsProvider>
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar projects={projects} onProjectsChange={loadProjects} />
+        <main className="flex-1 ml-56 overflow-hidden flex flex-col">
+          {children}
+        </main>
+      </div>
+    </NotificationsProvider>
   )
 }
