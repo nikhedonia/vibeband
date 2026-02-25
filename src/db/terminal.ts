@@ -9,8 +9,18 @@ interface Session {
   createdAt: number
 }
 
+interface SessionMeta {
+  cwd: string
+  projectId: number
+  projectName: string
+  ticketId?: number
+  ticketTitle?: string
+}
+
 // Server-side only: in-memory PTY sessions
 const sessions = new Map<string, Session>()
+// Metadata for active sessions (used to restore frontend state on reload)
+const sessionMetas = new Map<string, SessionMeta>()
 
 // Prune stale sessions older than 30 minutes
 function pruneSessions() {
@@ -19,6 +29,7 @@ function pruneSessions() {
     if (s.createdAt < cutoff) {
       try { s.pty.kill() } catch { /* ignore */ }
       sessions.delete(id)
+      sessionMetas.delete(id)
     }
   }
 }
@@ -88,6 +99,29 @@ export const stopTerminalSession = createServerFn({ method: 'POST' })
     if (session) {
       try { session.pty.kill() } catch { /* ignore */ }
       sessions.delete(data.sessionId)
+      sessionMetas.delete(data.sessionId)
     }
     return {}
+  })
+
+export const registerSessionMeta = createServerFn({ method: 'POST' })
+  .inputValidator((data: { sessionId: string } & SessionMeta) => data)
+  .handler(async ({ data }) => {
+    const { sessionId, ...meta } = data
+    if (sessions.has(sessionId)) {
+      sessionMetas.set(sessionId, meta)
+    }
+    return {}
+  })
+
+export const listTerminalSessions = createServerFn({ method: 'GET' })
+  .handler(async () => {
+    pruneSessions()
+    const result: ({ sessionId: string } & SessionMeta)[] = []
+    for (const [sessionId, meta] of sessionMetas) {
+      if (sessions.has(sessionId)) {
+        result.push({ sessionId, ...meta })
+      }
+    }
+    return result
   })

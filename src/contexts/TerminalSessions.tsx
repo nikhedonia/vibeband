@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { stopTerminalSession } from '../db/terminal'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { stopTerminalSession, registerSessionMeta, listTerminalSessions } from '../db/terminal'
 
 export interface TerminalSession {
   id: string
@@ -29,6 +29,22 @@ const TerminalSessionsContext = createContext<ContextValue | null>(null)
 export function TerminalSessionsProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<TerminalSession[]>([])
 
+  // Restore sessions from server on mount
+  useEffect(() => {
+    listTerminalSessions().then((serverSessions) => {
+      if (serverSessions.length === 0) return
+      setSessions(serverSessions.map(({ sessionId, cwd, projectId, projectName, ticketId, ticketTitle }) => ({
+        id: genId(),
+        cwd,
+        projectId,
+        projectName,
+        ticketId,
+        ticketTitle,
+        backendSessionId: sessionId,
+      })))
+    }).catch(() => {})
+  }, [])
+
   const addSession = useCallback((opts: Omit<TerminalSession, 'id' | 'backendSessionId'>) => {
     const id = genId()
     setSessions((prev) => [...prev, { ...opts, id }])
@@ -46,7 +62,22 @@ export function TerminalSessionsProvider({ children }: { children: React.ReactNo
   }, [])
 
   const setBackendSessionId = useCallback((id: string, backendSessionId: string) => {
-    setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, backendSessionId } : s)))
+    setSessions((prev) => {
+      const session = prev.find((s) => s.id === id)
+      if (session) {
+        registerSessionMeta({
+          data: {
+            sessionId: backendSessionId,
+            cwd: session.cwd,
+            projectId: session.projectId,
+            projectName: session.projectName,
+            ticketId: session.ticketId,
+            ticketTitle: session.ticketTitle,
+          },
+        }).catch(() => {})
+      }
+      return prev.map((s) => (s.id === id ? { ...s, backendSessionId } : s))
+    })
   }, [])
 
   const closeSessionsForTicket = useCallback((ticketId: number) => {
