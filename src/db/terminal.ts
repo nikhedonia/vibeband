@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import pty from 'node-pty'
 import { existsSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
+import { insertAuditEvent } from './audit.ts'
 
 interface Session {
   pty: pty.IPty
@@ -54,6 +55,8 @@ export const startTerminalSession = createServerFn({ method: 'POST' })
     const session: Session = { pty: ptyProcess, buffer: '', createdAt: Date.now() }
     sessions.set(sessionId, session)
 
+    insertAuditEvent('terminal_started', `Terminal session started in ${cwd}`)
+
     ptyProcess.onData((data: string) => {
       const s = sessions.get(sessionId)
       if (s) s.buffer += data
@@ -64,6 +67,7 @@ export const startTerminalSession = createServerFn({ method: 'POST' })
       if (s) {
         s.buffer += '\r\n\x1b[2m[process exited]\x1b[0m\r\n'
         s.exited = true
+        insertAuditEvent('terminal_exited', `Terminal session exited (cwd: ${cwd})`)
       }
     })
 
@@ -102,13 +106,17 @@ export const resizeTerminalSession = createServerFn({ method: 'POST' })
   })
 
 export const stopTerminalSession = createServerFn({ method: 'POST' })
-  .inputValidator((data: { sessionId: string }) => data)
+  .inputValidator((data: { sessionId: string; reason?: string }) => data)
   .handler(async ({ data }) => {
     const session = sessions.get(data.sessionId)
     if (session) {
       try { session.pty.kill() } catch { /* ignore */ }
       sessions.delete(data.sessionId)
+      const meta = sessionMetas.get(data.sessionId)
       sessionMetas.delete(data.sessionId)
+      const reason = data.reason ?? 'manually closed'
+      const cwd = meta?.cwd ?? 'unknown'
+      insertAuditEvent('terminal_closed', `Terminal session closed (${reason}, cwd: ${cwd})`)
     }
     return {}
   })

@@ -20,7 +20,7 @@ interface ContextValue {
   addSession: (opts: Omit<TerminalSession, 'id' | 'backendSessionId'>) => string
   removeSession: (id: string) => void
   setBackendSessionId: (id: string, backendSessionId: string) => void
-  closeSessionsForTicket: (ticketId: number) => void
+  closeSessionsForTicket: (ticketId: number, reason?: string) => number
   getSessionsForProject: (projectId: number) => TerminalSession[]
 }
 
@@ -80,16 +80,19 @@ export function TerminalSessionsProvider({ children }: { children: React.ReactNo
     })
   }, [])
 
-  const closeSessionsForTicket = useCallback((ticketId: number) => {
+  const closeSessionsForTicket = useCallback((ticketId: number, reason = 'workspace destroyed'): number => {
+    let count = 0
     setSessions((prev) => {
       const toClose = prev.filter((s) => s.ticketId === ticketId)
+      count = toClose.length
       for (const s of toClose) {
         if (s.backendSessionId) {
-          stopTerminalSession({ data: { sessionId: s.backendSessionId } }).catch(() => {})
+          stopTerminalSession({ data: { sessionId: s.backendSessionId, reason } }).catch(() => {})
         }
       }
       return prev.filter((s) => s.ticketId !== ticketId)
     })
+    return count
   }, [])
 
   const getSessionsForProject = useCallback(

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X } from 'lucide-react'
+import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
 import { createProject, deleteProject } from '../db/kanban'
 import type { TerminalSession } from '../contexts/TerminalSessions'
@@ -64,6 +64,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
       <nav className="flex flex-col gap-1 px-2 py-3">
         <NavLink to="/" icon={<Home size={18} />} label="Home" />
         <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" />
+        <NavLink to="/audit" icon={<ClipboardList size={18} />} label="Audit Log" />
         {/* Terminals toggle */}
         <button
           type="button"

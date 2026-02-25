@@ -26,6 +26,7 @@ import TerminalTabs from '../../components/TerminalTabs'
 import { useNotifications } from '../../components/Notifications'
 import { useTerminalSessions } from '../../contexts/TerminalSessions'
 import { slugify } from '../../utils/slugify'
+import { logAuditEvent } from '../../db/audit'
 
 export const Route = createFileRoute('/board/$boardId')({
   loader: async ({ params }) => {
@@ -301,17 +302,35 @@ function BoardPage() {
       }
     } else if (colName === 'done') {
       // Close any open terminal sessions for this ticket
-      closeSessionsForTicket(ticket.id)
+      const closedCount = closeSessionsForTicket(ticket.id, 'workspace destroyed')
+      if (closedCount > 0) {
+        notify(
+          `Closing ${closedCount} terminal session${closedCount > 1 ? 's' : ''} for "${ticket.title}"…`,
+          'info',
+        )
+      }
       // Remove ticket worktree
       const worktreePath = `/var/tmp/${projectSlug}/${ticketSlug}`
       try {
         const result = await removeWorktreeApi({ repoPath: localRepo, worktreePath })
         if (result.removed) {
-          notify(`Worktree removed: ${worktreePath}`, 'info')
+          notify(`Workspace destroyed: ${worktreePath}`, 'success')
+          logAuditEvent({
+            data: {
+              eventType: 'workspace_destroyed',
+              message: `Workspace destroyed for ticket "${ticket.title}" (${worktreePath}), ${closedCount} terminal session${closedCount !== 1 ? 's' : ''} closed`,
+            },
+          }).catch(() => {})
         }
         refreshWorktrees(localRepo)
       } catch (e) {
-        notify(`Worktree removal error: ${e}`, 'error')
+        notify(`Workspace destruction error: ${e}`, 'error')
+        logAuditEvent({
+          data: {
+            eventType: 'workspace_destroyed',
+            message: `Workspace destruction failed for ticket "${ticket.title}" (${worktreePath}): ${e}`,
+          },
+        }).catch(() => {})
       }
     }
   }
