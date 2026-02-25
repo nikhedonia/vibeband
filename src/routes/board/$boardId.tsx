@@ -8,6 +8,7 @@ import {
   X,
   PanelRight,
 } from 'lucide-react'
+import ProjectHealthBar from '../../components/ProjectHealthBar'
 import { getBoardData, updateProject } from '../../db/kanban'
 import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl, listWorktrees, getWorktreeDiffStats } from '../../db/worktree'
 import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
@@ -317,18 +318,21 @@ function BoardPage() {
             onChange={handleRepoUrlChange}
           />
         </div>
-        <button
-          onClick={() => setEditorOpen((v) => !v)}
-          title={editorOpen ? 'Hide editor' : 'Show editor'}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-            editorOpen
-              ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
-              : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
-          }`}
-        >
-          <PanelRight size={16} />
-          <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <ProjectHealthBar projectId={project.id} repoPath={resolvedRepoPath} />
+          <button
+            onClick={() => setEditorOpen((v) => !v)}
+            title={editorOpen ? 'Hide editor' : 'Show editor'}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+              editorOpen
+                ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
+                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+            }`}
+          >
+            <PanelRight size={16} />
+            <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Board body — split pane */}

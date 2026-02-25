@@ -16,8 +16,6 @@ async function checkCommand(cmd: string): Promise<boolean> {
 }
 
 export const getEnvInfo = createServerFn({ method: 'GET' }).handler(async () => {
-  const cwd = process.cwd()
-
   const [ghInstalled, dockerRunning, copilotInstalled] = await Promise.all([
     checkCommand('gh --version'),
     checkCommand('docker info'),
@@ -28,24 +26,41 @@ export const getEnvInfo = createServerFn({ method: 'GET' }).handler(async () => 
     ? await checkCommand('gh auth status')
     : false
 
-  // Project health: read package.json
-  let scripts: Record<string, string> = {}
-  const pkgPath = join(cwd, 'package.json')
-  if (existsSync(pkgPath)) {
-    try {
-      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
-      scripts = pkg.scripts ?? {}
-    } catch { /* ignore */ }
-  }
-
-  const hasTests = 'test' in scripts
-  const hasBuild = 'build' in scripts || existsSync(join(cwd, 'Dockerfile'))
-  const hasPreview = 'dev' in scripts
-
   return {
     gh: { installed: ghInstalled, loggedIn: ghLoggedIn },
     docker: { running: dockerRunning },
     copilot: { installed: copilotInstalled },
-    health: { hasTests, hasBuild, hasPreview },
   }
 })
+
+export const getProjectScripts = createServerFn({ method: 'GET' })
+  .inputValidator((data: { repoPath: string }) => data)
+  .handler(async ({ data }) => {
+    let scripts: Record<string, string> = {}
+    const pkgPath = join(data.repoPath, 'package.json')
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+        scripts = pkg.scripts ?? {}
+      } catch { /* ignore */ }
+    }
+    const hasDockerfile = existsSync(join(data.repoPath, 'Dockerfile'))
+    return { scripts, hasDockerfile }
+  })
+
+export const runHealthCheck = createServerFn({ method: 'POST' })
+  .inputValidator((data: { command: string; cwd?: string }) => data)
+  .handler(async ({ data }) => {
+    const cwd = data.cwd && existsSync(data.cwd) ? data.cwd : process.cwd()
+    try {
+      const { stdout, stderr } = await execAsync(data.command, {
+        timeout: 30_000,
+        cwd,
+      })
+      return { ok: true, output: (stdout + stderr).trim() }
+    } catch (e: unknown) {
+      const err = e as { stdout?: string; stderr?: string; message?: string }
+      const out = [err.stdout, err.stderr, err.message].filter(Boolean).join('\n')
+      return { ok: false, output: out.trim() }
+    }
+  })
