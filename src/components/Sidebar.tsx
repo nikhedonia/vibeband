@@ -102,7 +102,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
             </span>
           )}
         </button>
-        {/* Projects icon — expands sidebar when collapsed */}
+        {/* Projects icon — expands sidebar when collapsed, acts as label when expanded */}
         <button
           type="button"
           onClick={collapsed ? onToggleCollapse : undefined}
@@ -205,7 +205,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
         ))}
 
         {/* New board inline form */}
-        {showNewBoard && (
+        {!collapsed && showNewBoard && (
           <form onSubmit={handleCreateBoard} className="mt-2 px-1">
             <input
               autoFocus
@@ -235,8 +235,14 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
       </div>
 
       {/* Settings */}
-      <div className="px-2 py-3 border-t border-gray-800">
-        <NavLink to="/settings" icon={<Settings size={18} />} label="Settings" />
+      <div className="px-2 py-3 border-t border-gray-800 flex-shrink-0">
+        <NavLink
+          to="/settings"
+          icon={<Settings size={18} />}
+          label="Settings"
+          collapsed={collapsed}
+          onExpandRequest={onToggleCollapse}
+        />
       </div>
     </aside>
   )
@@ -264,7 +270,7 @@ function NavLink({
       activeOptions={{ exact: true }}
       title={collapsed ? label : undefined}
     >
-      {icon}
+      <span className="flex-shrink-0">{icon}</span>
       {!collapsed && <span>{label}</span>}
     </Link>
   )

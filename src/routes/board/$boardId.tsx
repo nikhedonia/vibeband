@@ -333,54 +333,51 @@ function BoardPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Board header */}
-      <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0 flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white">{project.name}</h1>
-          {project.description && (
-            <p className="text-sm text-gray-400 mt-0.5">{project.description}</p>
-          )}
-          <RepoUrlEditor
-            projectId={project.id}
-            initialUrl={project.repoUrl ?? ''}
-            onChange={handleRepoUrlChange}
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <ProjectHealthBar projectId={project.id} repoPath={resolvedRepoPath} />
-          <button
-            onClick={() => setEditorOpen((v) => !v)}
-            title={editorOpen ? 'Hide editor' : 'Show editor'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              editorOpen
-                ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
-                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
-            }`}
-          >
-            <PanelRight size={16} />
-            <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Board body — split pane */}
-      <div className="flex-1 flex overflow-hidden flex-col">
-        {/* Kanban + Editor row */}
-        <div className="flex-1 flex overflow-hidden min-h-0">
-          {/* Kanban board */}
-          <div className="flex-1 overflow-auto p-4">
-            <KanbanBoard
-              ref={kanbanRef}
+    <div className="flex h-full overflow-hidden">
+      {/* Left column: header + kanban + terminal */}
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Board header */}
+        <div className="px-6 py-4 border-b border-gray-800 flex-shrink-0 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">{project.name}</h1>
+            {project.description && (
+              <p className="text-sm text-gray-400 mt-0.5">{project.description}</p>
+            )}
+            <RepoUrlEditor
               projectId={project.id}
-              initialColumns={columns}
-              initialTickets={tickets}
-              selectedTicketId={selectedTicket?.id ?? null}
-              onTicketSelect={handleTicketSelect}
-              onTicketMoved={handleTicketMoved}
-              worktrees={worktrees}
-              terminalCountsByTicket={terminalCountsByTicket}
-              onOpenTerminal={(path, ticket) => {
+              initialUrl={project.repoUrl ?? ''}
+              onChange={handleRepoUrlChange}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <ProjectHealthBar projectId={project.id} repoPath={resolvedRepoPath} />
+            <button
+              onClick={() => setEditorOpen((v) => !v)}
+              title={editorOpen ? 'Hide editor' : 'Show editor'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                editorOpen
+                  ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
+                  : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+              }`}
+            >
+              <PanelRight size={16} />
+              <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Kanban board */}
+        <div className="flex-1 overflow-auto p-4 min-h-0">
+          <KanbanBoard
+            ref={kanbanRef}
+            projectId={project.id}
+            initialColumns={columns}
+            initialTickets={tickets}
+            selectedTicketId={selectedTicket?.id ?? null}
+            onTicketSelect={handleTicketSelect}
+            onTicketMoved={handleTicketMoved}
+            worktrees={worktrees}
+            terminalCountsByTicket={terminalCountsByTicket}
                 const id = addSession({
                   cwd: path,
                   projectId: project.id,
@@ -390,19 +387,7 @@ function BoardPage() {
                 })
                 setActiveTerminalId(id)
               }}
-            />
-          </div>
-
-          {/* Editor panel */}
-          {editorOpen && (
-            <MarkdownEditor
-              ticket={selectedTicket}
-              onClose={() => setSelectedTicket(null)}
-              onSave={handleEditorSave}
-              onDelete={handleEditorDelete}
-              repoPath={localRepo}
-            />
-          )}
+          />
         </div>
 
         {/* Terminal tabs panel */}
@@ -436,6 +421,17 @@ function BoardPage() {
           </div>
         )}
       </div>
+
+      {/* Editor panel — full height */}
+      {editorOpen && (
+        <MarkdownEditor
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          onSave={handleEditorSave}
+          onDelete={handleEditorDelete}
+          repoPath={localRepo}
+        />
+      )}
     </div>
   )
 }
