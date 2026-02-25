@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X,
   Eye,
@@ -9,9 +9,10 @@ import {
   FileText,
   Folder,
   ArrowLeft,
+  Save,
 } from 'lucide-react'
 import { updateTicket, deleteTicket } from '../../db/kanban'
-import { listProjectFiles, readProjectFile } from '../../db/worktree'
+import { listProjectFiles, readProjectFile, writeProjectFile } from '../../db/worktree'
 import type { FileNode } from '../../db/worktree'
 
 interface Ticket {
@@ -99,6 +100,9 @@ function FileTreeNode({
 function FileBrowser({ repoPath }: { repoPath: string }) {
   const [files, setFiles] = useState<FileNode[]>([])
   const [openFile, setOpenFile] = useState<{ path: string; content: string } | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -114,8 +118,26 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
         data: { rootPath: repoPath, filePath },
       })
       setOpenFile({ path: filePath, content })
+      setEditContent(content)
+      setEditing(false)
     } catch {
       setOpenFile({ path: filePath, content: '(binary or unreadable file)' })
+      setEditContent('')
+      setEditing(false)
+    }
+  }
+
+  async function handleSave() {
+    if (!openFile) return
+    setSaving(true)
+    try {
+      await writeProjectFile({
+        data: { rootPath: repoPath, filePath: openFile.path, content: editContent },
+      })
+      setOpenFile({ ...openFile, content: editContent })
+      setEditing(false)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -124,7 +146,7 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700 flex-shrink-0">
           <button
-            onClick={() => setOpenFile(null)}
+            onClick={() => { setOpenFile(null); setEditing(false) }}
             className="text-gray-400 hover:text-white"
           >
             <ArrowLeft size={14} />
@@ -132,11 +154,47 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
           <span className="text-xs text-gray-300 font-mono truncate flex-1">
             {openFile.path}
           </span>
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              title="Edit file"
+            >
+              <Edit3 size={13} />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => { setEditing(false); setEditContent(openFile.content) }}
+                className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                title="Discard changes"
+              >
+                <X size={13} />
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="p-1 rounded hover:bg-gray-700 text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50"
+                title="Save file"
+              >
+                <Save size={13} />
+              </button>
+            </>
+          )}
         </div>
         <div className="flex-1 overflow-auto p-3">
-          <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">
-            {openFile.content}
-          </pre>
+          {editing ? (
+            <textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="w-full h-full min-h-full bg-transparent text-xs text-gray-300 font-mono whitespace-pre resize-none focus:outline-none leading-relaxed"
+              spellCheck={false}
+            />
+          ) : (
+            <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">
+              {openFile.content}
+            </pre>
+          )}
         </div>
       </div>
     )
@@ -176,6 +234,34 @@ export default function MarkdownEditor({
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'editor' | 'files'>('editor')
+  const [width, setWidth] = useState(480)
+  const isResizing = useRef(false)
+  const startX = useRef(0)
+  const startWidth = useRef(0)
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true
+    startX.current = e.clientX
+    startWidth.current = width
+    e.preventDefault()
+  }, [width])
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!isResizing.current) return
+      const delta = startX.current - e.clientX
+      setWidth(Math.max(320, Math.min(900, startWidth.current + delta)))
+    }
+    function onMouseUp() {
+      isResizing.current = false
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   useEffect(() => {
     if (ticket) {
@@ -203,7 +289,12 @@ export default function MarkdownEditor({
   const hasRepo = !!repoPath
 
   return (
-    <div className="w-[480px] flex-shrink-0 border-l border-gray-700 bg-gray-900 flex flex-col">
+    <div style={{ width }} className="flex-shrink-0 border-l border-gray-700 bg-gray-900 flex flex-col relative">
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleResizeMouseDown}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/60 transition-colors z-10"
+      />
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-700 flex-shrink-0">
         <button
