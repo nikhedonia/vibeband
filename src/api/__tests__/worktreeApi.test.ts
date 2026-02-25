@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { slugify } from '../../utils/slugify'
 
-// ── Mock server functions so the API module works without a real server ────────
+// ── Mock client functions so the API module works without a real server ────────
 
-vi.mock('../../db/worktree', () => ({
+vi.mock('../client', () => ({
   createWorktree: vi.fn(),
   removeWorktree: vi.fn(),
   ensureMainWorktree: vi.fn(),
@@ -25,7 +25,7 @@ import {
   ensureMainWorktree,
   listWorktrees,
   getWorktreeDiffStats,
-} from '../../db/worktree'
+} from '../client'
 
 const mockCreate = vi.mocked(createWorktree)
 const mockRemove = vi.mocked(removeWorktree)
@@ -96,7 +96,7 @@ describe('createWorktreeApi', () => {
     })
 
     expect(mockCreate).toHaveBeenCalledWith({
-      data: { repoPath: '/repos/proj', projectSlug: 'proj-1', branchSlug: 'my-ticket-5' },
+      repoPath: '/repos/proj', projectSlug: 'proj-1', branchSlug: 'my-ticket-5',
     })
     expect(result).toEqual({ path: '/var/tmp/proj-1/my-ticket-5', created: true })
   })
@@ -124,7 +124,7 @@ describe('removeWorktreeApi', () => {
     })
 
     expect(mockRemove).toHaveBeenCalledWith({
-      data: { repoPath: '/repos/proj', worktreePath: '/var/tmp/proj-1/done-ticket-3' },
+      repoPath: '/repos/proj', worktreePath: '/var/tmp/proj-1/done-ticket-3',
     })
     expect(result.removed).toBe(true)
   })
@@ -148,7 +148,7 @@ describe('ensureMainWorktreeApi', () => {
     const result = await ensureMainWorktreeApi({ repoPath: '/repos/proj', projectSlug: 'proj-1' })
 
     expect(mockEnsureMain).toHaveBeenCalledWith({
-      data: { repoPath: '/repos/proj', projectSlug: 'proj-1' },
+      repoPath: '/repos/proj', projectSlug: 'proj-1',
     })
     expect(result).toEqual({ path: '/var/tmp/proj-1/main', created: true, branch: 'main' })
   })
@@ -166,7 +166,7 @@ describe('listWorktreesApi', () => {
 
     const result = await listWorktreesApi({ repoPath: '/repos/proj' })
 
-    expect(mockList).toHaveBeenCalledWith({ data: { repoPath: '/repos/proj' } })
+    expect(mockList).toHaveBeenCalledWith('/repos/proj')
     expect(result.worktrees).toHaveLength(2)
   })
 })
@@ -183,7 +183,7 @@ describe('getWorktreeDiffStatsApi', () => {
     })
 
     expect(mockDiffStats).toHaveBeenCalledWith({
-      data: { worktreePath: '/var/tmp/proj-1/my-ticket-5', baseBranch: 'main' },
+      worktreePath: '/var/tmp/proj-1/my-ticket-5', baseBranch: 'main',
     })
     expect(result).toEqual({ added: 10, deleted: 2, changed: 3 })
   })
@@ -194,7 +194,7 @@ describe('getWorktreeDiffStatsApi', () => {
     await getWorktreeDiffStatsApi({ worktreePath: '/var/tmp/proj-1/my-ticket-5' })
 
     expect(mockDiffStats).toHaveBeenCalledWith({
-      data: { worktreePath: '/var/tmp/proj-1/my-ticket-5', baseBranch: undefined },
+      worktreePath: '/var/tmp/proj-1/my-ticket-5', baseBranch: undefined,
     })
   })
 })
