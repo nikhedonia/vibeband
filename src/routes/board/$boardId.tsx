@@ -271,7 +271,13 @@ function BoardPage() {
   }
 
   async function handleTicketMoved(ticket: Ticket, column: Column) {
-    if (!localRepo) return
+    if (!localRepo) {
+      const colName = column.name.toLowerCase()
+      if (colName === 'in progress' || colName === 'done') {
+        notify('No repo linked — worktree skipped. Set a repo URL in project settings.', 'info')
+      }
+      return
+    }
     const projectSlug = `${slugify(project.name)}-${project.id}`
     const ticketSlug = `${slugify(ticket.title) || 'ticket'}-${ticket.id}`
     const colName = column.name.toLowerCase()
