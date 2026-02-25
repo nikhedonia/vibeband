@@ -7,6 +7,7 @@ interface Session {
   pty: pty.IPty
   buffer: string
   createdAt: number
+  exited?: boolean
 }
 
 interface SessionMeta {
@@ -60,7 +61,10 @@ export const startTerminalSession = createServerFn({ method: 'POST' })
 
     ptyProcess.onExit(() => {
       const s = sessions.get(sessionId)
-      if (s) s.buffer += '\r\n\x1b[2m[process exited]\x1b[0m\r\n'
+      if (s) {
+        s.buffer += '\r\n\x1b[2m[process exited]\x1b[0m\r\n'
+        s.exited = true
+      }
     })
 
     return { sessionId }
@@ -73,6 +77,11 @@ export const pollTerminalOutput = createServerFn({ method: 'GET' })
     if (!session) return { output: '', alive: false }
     const output = session.buffer
     session.buffer = ''
+    if (session.exited) {
+      sessions.delete(data.sessionId)
+      sessionMetas.delete(data.sessionId)
+      return { output, alive: false }
+    }
     return { output, alive: true }
   })
 

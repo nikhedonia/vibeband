@@ -125,8 +125,13 @@ export default function TerminalPanel({
       pollTimer = setInterval(async () => {
         if (!sessionId) return
         try {
-          const { output } = await pollTerminalOutput({ data: { sessionId } })
+          const { output, alive } = await pollTerminalOutput({ data: { sessionId } })
           if (output) term.write(output)
+          if (!alive) {
+            if (pollTimer) clearInterval(pollTimer)
+            pollTimer = null
+            onClose()
+          }
         } catch {
           // non-fatal poll failure
         }
