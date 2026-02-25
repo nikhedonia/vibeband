@@ -43,39 +43,39 @@ const BoardBoardIdRoute = BoardBoardIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/audit': typeof AuditRoute
   '/board/$boardId': typeof BoardBoardIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/audit': typeof AuditRoute
   '/board/$boardId': typeof BoardBoardIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audit': typeof AuditRoute
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
-  '/audit': typeof AuditRoute
   '/board/$boardId': typeof BoardBoardIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/stats' | '/audit' | '/board/$boardId'
+  fullPaths: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/stats' | '/audit' | '/board/$boardId'
-  id: '__root__' | '/' | '/settings' | '/stats' | '/audit' | '/board/$boardId'
+  to: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
+  id: '__root__' | '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditRoute: typeof AuditRoute
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
-  AuditRoute: typeof AuditRoute
   BoardBoardIdRoute: typeof BoardBoardIdRoute
 }
 
@@ -121,9 +121,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditRoute: AuditRoute,
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
-  AuditRoute: AuditRoute,
   BoardBoardIdRoute: BoardBoardIdRoute,
 }
 export const routeTree = rootRouteImport
