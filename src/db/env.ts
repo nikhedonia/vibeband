@@ -1,10 +1,19 @@
 import { createServerFn } from '@tanstack/react-start'
 import { exec } from 'node:child_process'
-import { promisify } from 'node:util'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const execAsync = promisify(exec)
+const execAsync = (cmd: string, options: { timeout?: number; cwd?: string } = {}) =>
+  new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    exec(cmd, options, (err, stdout, stderr) => {
+      if (err) {
+        Object.assign(err, { stdout, stderr })
+        reject(err)
+      } else {
+        resolve({ stdout, stderr })
+      }
+    })
+  })
 
 async function checkCommand(cmd: string): Promise<boolean> {
   try {
