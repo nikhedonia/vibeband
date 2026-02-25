@@ -378,6 +378,7 @@ function BoardPage() {
             onTicketMoved={handleTicketMoved}
             worktrees={worktrees}
             terminalCountsByTicket={terminalCountsByTicket}
+            onOpenTerminal={(path, ticket) => {
                 const id = addSession({
                   cwd: path,
                   projectId: project.id,
