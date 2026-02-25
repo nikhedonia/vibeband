@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X } from 'lucide-react'
+import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, Layers } from 'lucide-react'
 import { useState } from 'react'
 import { createProject, deleteProject } from '../db/kanban'
 import type { TerminalSession } from '../contexts/TerminalSessions'
@@ -53,18 +53,33 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
       className="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col border-r border-gray-800 z-40 transition-[width] duration-200 overflow-hidden"
       style={{ width: collapsed ? 56 : 224 }}
     >
-      {/* Logo / toggle */}
-      <div className="px-3 py-4 border-b border-gray-800 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Trello className="text-cyan-400 flex-shrink-0" size={22} />
-          {!collapsed && <span className="font-bold text-lg tracking-tight whitespace-nowrap">VibeBand</span>}
-        </div>
-      </div>
+      {/* Logo — click to toggle collapse */}
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="px-3 py-4 border-b border-gray-800 flex-shrink-0 flex items-center gap-2 hover:bg-gray-800 transition-colors w-full text-left"
+      >
+        <Trello className="text-cyan-400 flex-shrink-0" size={22} />
+        {!collapsed && <span className="font-bold text-lg tracking-tight whitespace-nowrap">VibeBand</span>}
+      </button>
 
       {/* Nav icons */}
       <nav className="flex flex-col gap-1 px-2 py-3 flex-shrink-0">
-        <NavLink to="/" icon={<Home size={18} />} label="Home" collapsed={collapsed} />
-        <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" collapsed={collapsed} />
+        <NavLink
+          to="/"
+          icon={<Home size={18} />}
+          label="Home"
+          collapsed={collapsed}
+          onExpandRequest={onToggleCollapse}
+        />
+        <NavLink
+          to="/stats"
+          icon={<BarChart2 size={18} />}
+          label="Stats"
+          collapsed={collapsed}
+          onExpandRequest={onToggleCollapse}
+        />
         {/* Terminals toggle */}
         <button
           type="button"
@@ -83,6 +98,17 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
             </span>
           )}
         </button>
+        {/* Projects icon — only in collapsed mode */}
+        {collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title="Expand to see Projects"
+            className="flex items-center justify-center px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors w-full"
+          >
+            <Layers size={18} className="flex-shrink-0" />
+          </button>
+        )}
       </nav>
 
       {/* Terminal sessions list */}
@@ -127,7 +153,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
         </div>
       )}
 
-      {/* Projects list */}
+      {/* Projects list (expanded only) */}
       {!collapsed && (
         <div className="flex-1 overflow-y-auto px-2 py-2">
           <div className="flex items-center justify-between px-2 mb-2">
@@ -201,7 +227,13 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
 
       {/* Settings */}
       <div className="px-2 py-3 border-t border-gray-800 flex-shrink-0">
-        <NavLink to="/settings" icon={<Settings size={18} />} label="Settings" collapsed={collapsed} />
+        <NavLink
+          to="/settings"
+          icon={<Settings size={18} />}
+          label="Settings"
+          collapsed={collapsed}
+          onExpandRequest={onToggleCollapse}
+        />
       </div>
     </aside>
   )
@@ -212,15 +244,18 @@ function NavLink({
   icon,
   label,
   collapsed,
+  onExpandRequest,
 }: {
   to: string
   icon: React.ReactNode
   label: string
   collapsed?: boolean
+  onExpandRequest?: () => void
 }) {
   return (
     <Link
       to={to}
+      onClick={() => collapsed && onExpandRequest?.()}
       className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
       activeProps={{ className: 'flex items-center gap-3 px-3 py-2 rounded-md text-sm bg-gray-800 text-white' }}
       activeOptions={{ exact: true }}
