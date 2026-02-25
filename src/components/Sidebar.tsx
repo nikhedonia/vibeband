@@ -98,17 +98,16 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
             </span>
           )}
         </button>
-        {/* Projects icon — only in collapsed mode */}
-        {collapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="Expand to see Projects"
-            className="flex items-center justify-center px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors w-full"
-          >
-            <Layers size={18} className="flex-shrink-0" />
-          </button>
-        )}
+        {/* Projects icon — expands sidebar when collapsed, acts as label when expanded */}
+        <button
+          type="button"
+          onClick={collapsed ? onToggleCollapse : undefined}
+          title={collapsed ? 'Expand to see Projects' : 'Projects'}
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors w-full text-left"
+        >
+          <Layers size={18} className="flex-shrink-0" />
+          {!collapsed && <span>Projects</span>}
+        </button>
       </nav>
 
       {/* Terminal sessions list */}
