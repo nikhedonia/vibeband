@@ -1,5 +1,17 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, Layers } from 'lucide-react'
+
+function projectInitials(name: string): string {
+  // Split on spaces, hyphens, underscores, or camelCase boundaries
+  const words = name
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase → words
+    .split(/[\s\-_]+/)
+    .filter(Boolean)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
 import { useState } from 'react'
 import { createProject, deleteProject } from '../db/kanban'
 import type { TerminalSession } from '../contexts/TerminalSessions'
@@ -180,7 +192,12 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
               className="group flex items-center justify-between px-2 py-1.5 rounded-md text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
               activeProps={{ className: 'flex items-center justify-between px-2 py-1.5 rounded-md text-sm bg-cyan-900/60 text-cyan-300' }}
             >
-              <span className="truncate">{p.name}</span>
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="flex-shrink-0 w-6 h-6 rounded bg-cyan-800 flex items-center justify-center text-[10px] font-bold text-cyan-200 leading-none">
+                  {projectInitials(p.name)}
+                </span>
+                {!collapsed && <span className="truncate">{p.name}</span>}
+              </span>
               <button
                 onClick={(e) => handleDelete(e, p.id)}
                 className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition-opacity"
