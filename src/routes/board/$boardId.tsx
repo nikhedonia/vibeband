@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import ProjectHealthBar from '../../components/ProjectHealthBar'
 import { getBoardData, updateProject } from '../../api/client'
-import { isRemoteUrl } from '../../db/worktree'
+import { isRemoteUrl } from '../../utils/url'
 import { ensureRepoCloned } from '../../api/client'
 import {
   createWorktreeApi,

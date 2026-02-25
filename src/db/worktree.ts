@@ -50,14 +50,7 @@ function listFilesRecursive(dirPath: string, relPath = '', depth = 0): FileNode[
   } catch { return [] }
 }
 
-export function isRemoteUrl(url: string): boolean {
-  return (
-    url.startsWith('http://') ||
-    url.startsWith('https://') ||
-    url.startsWith('git@') ||
-    url.includes('://')
-  )
-}
+export { isRemoteUrl } from '../utils/url'
 
 export async function createWorktreeFn(data: { repoPath: string; projectSlug: string; branchSlug: string }) {
   const { repoPath, projectSlug, branchSlug } = data
