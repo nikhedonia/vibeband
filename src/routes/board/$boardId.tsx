@@ -10,7 +10,14 @@ import {
 } from 'lucide-react'
 import ProjectHealthBar from '../../components/ProjectHealthBar'
 import { getBoardData, updateProject } from '../../db/kanban'
-import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl, listWorktrees, getWorktreeDiffStats } from '../../db/worktree'
+import { ensureRepoCloned, isRemoteUrl } from '../../db/worktree'
+import {
+  createWorktreeApi,
+  removeWorktreeApi,
+  ensureMainWorktreeApi,
+  listWorktreesApi,
+  getWorktreeDiffStatsApi,
+} from '../../api/worktreeApi'
 import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
@@ -192,7 +199,7 @@ function BoardPage() {
 
   async function refreshWorktrees(repoPath: string) {
     try {
-      const { worktrees: wts } = await listWorktrees({ data: { repoPath } })
+      const { worktrees: wts } = await listWorktreesApi({ repoPath })
       const projectSlug = `${slugify(project.name)}-${project.id}`
       const map: Record<string, WorktreeInfo> = {}
       for (const wt of wts) {
@@ -200,7 +207,7 @@ function BoardPage() {
         const branchSlug = wt.path.replace(`/var/tmp/${projectSlug}/`, '')
         if (!branchSlug || branchSlug === 'main' || branchSlug === 'repo') continue
         // fetch diff stats (non-blocking per worktree)
-        const stats = await getWorktreeDiffStats({ data: { worktreePath: wt.path } }).catch(() => ({ added: 0, deleted: 0, changed: 0 }))
+        const stats = await getWorktreeDiffStatsApi({ worktreePath: wt.path }).catch(() => ({ added: 0, deleted: 0, changed: 0 }))
         map[branchSlug] = { ...wt, ...stats }
       }
       setWorktrees(map)
@@ -214,7 +221,7 @@ function BoardPage() {
     if (!url) return undefined
     if (isLocalPath(url)) return url
     // Remote URL — clone/fetch
-    const projectSlug = slugify(project.name)
+    const projectSlug = `${slugify(project.name)}-${project.id}`
     try {
       notify(`Cloning repository…`, 'info')
       const result = await ensureRepoCloned({ data: { repoUrl: url, projectSlug } })
@@ -273,8 +280,8 @@ function BoardPage() {
       // Create ticket worktree and ensure main worktree exists
       try {
         const [mainResult, ticketResult] = await Promise.all([
-          ensureMainWorktree({ data: { repoPath: localRepo, projectSlug } }),
-          createWorktree({ data: { repoPath: localRepo, projectSlug, branchSlug: ticketSlug } }),
+          ensureMainWorktreeApi({ repoPath: localRepo, projectSlug }),
+          createWorktreeApi({ repoPath: localRepo, projectSlug, branchSlug: ticketSlug }),
         ])
         if (mainResult.created) {
           notify(`Main worktree created: ${mainResult.path}`, 'info')
@@ -292,7 +299,7 @@ function BoardPage() {
       // Remove ticket worktree
       const worktreePath = `/var/tmp/${projectSlug}/${ticketSlug}`
       try {
-        const result = await removeWorktree({ data: { repoPath: localRepo, worktreePath } })
+        const result = await removeWorktreeApi({ repoPath: localRepo, worktreePath })
         if (result.removed) {
           notify(`Worktree removed: ${worktreePath}`, 'info')
         }

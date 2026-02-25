@@ -263,7 +263,7 @@ export default function KanbanBoard({
             {/* Tickets */}
             <div className="flex-1 overflow-y-auto px-2 space-y-2 min-h-8">
               {colTickets.map((ticket) => {
-                const tSlug = slugify(ticket.title) || `ticket-${ticket.id}`
+                const tSlug = `${slugify(ticket.title) || 'ticket'}-${ticket.id}`
                 const wt = worktrees[tSlug]
                 return (
                 <div
