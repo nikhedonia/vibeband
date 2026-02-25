@@ -15,6 +15,7 @@ interface Project {
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const { sessions } = useTerminalSessions()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const loadProjects = useCallback(async () => {
     const data = await getProjects()
@@ -28,8 +29,17 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <NotificationsProvider>
       <div className="flex h-screen overflow-hidden">
-        <Sidebar projects={projects} onProjectsChange={loadProjects} terminalSessions={sessions} />
-        <main className="flex-1 ml-56 overflow-hidden flex flex-col">
+        <Sidebar
+          projects={projects}
+          onProjectsChange={loadProjects}
+          terminalSessions={sessions}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+        />
+        <main
+          className="flex-1 overflow-hidden flex flex-col transition-[margin] duration-200"
+          style={{ marginLeft: sidebarCollapsed ? 56 : 224 }}
+        >
           {children}
         </main>
       </div>

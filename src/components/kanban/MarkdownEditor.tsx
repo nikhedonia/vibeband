@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X,
   Eye,
@@ -174,6 +174,34 @@ export default function MarkdownEditor({
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'editor' | 'files'>('editor')
+  const [width, setWidth] = useState(480)
+  const isResizing = useRef(false)
+  const startX = useRef(0)
+  const startWidth = useRef(0)
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    isResizing.current = true
+    startX.current = e.clientX
+    startWidth.current = width
+    e.preventDefault()
+  }, [width])
+
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!isResizing.current) return
+      const delta = startX.current - e.clientX
+      setWidth(Math.max(320, Math.min(900, startWidth.current + delta)))
+    }
+    function onMouseUp() {
+      isResizing.current = false
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
 
   useEffect(() => {
     if (ticket) {
@@ -201,7 +229,12 @@ export default function MarkdownEditor({
   const hasRepo = !!repoPath
 
   return (
-    <div className="w-[480px] flex-shrink-0 border-l border-gray-700 bg-gray-900 flex flex-col">
+    <div style={{ width }} className="flex-shrink-0 border-l border-gray-700 bg-gray-900 flex flex-col relative">
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleResizeMouseDown}
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/60 transition-colors z-10"
+      />
       {/* Tab bar */}
       <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-700 flex-shrink-0">
         <button

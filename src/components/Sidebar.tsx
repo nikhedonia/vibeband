@@ -1,10 +1,21 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, ClipboardList } from 'lucide-react'
+import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, ClipboardList, Layers } from 'lucide-react'
 import { useState } from 'react'
 import { createProject, deleteProject } from '../api/client'
 import type { TerminalSession } from '../contexts/TerminalSessions'
 import { useTerminalSessions } from '../contexts/TerminalSessions'
 import EnvInfoBar from './EnvInfoBar'
+
+function projectInitials(name: string): string {
+  const words = name
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .split(/[\s\-_]+/)
+    .filter(Boolean)
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
 
 interface Project {
   id: number
@@ -18,9 +29,11 @@ interface SidebarProps {
   projects: Project[]
   onProjectsChange: () => void
   terminalSessions: TerminalSession[]
+  collapsed: boolean
+  onToggleCollapse: () => void
 }
 
-export default function Sidebar({ projects, onProjectsChange, terminalSessions }: SidebarProps) {
+export default function Sidebar({ projects, onProjectsChange, terminalSessions, collapsed, onToggleCollapse }: SidebarProps) {
   const [showNewBoard, setShowNewBoard] = useState(false)
   const [newBoardName, setNewBoardName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -48,23 +61,29 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
   }
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-56 bg-gray-900 text-white flex flex-col border-r border-gray-800 z-40">
-      {/* Logo */}
-      <div className="px-4 py-4 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <Trello className="text-cyan-400" size={22} />
-          <span className="font-bold text-lg tracking-tight">VibeBand</span>
-        </div>
-      </div>
+    <aside
+      className="fixed top-0 left-0 h-screen bg-gray-900 text-white flex flex-col border-r border-gray-800 z-40 transition-[width] duration-200 overflow-hidden"
+      style={{ width: collapsed ? 56 : 224 }}
+    >
+      {/* Logo — click to toggle collapse */}
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        className="px-3 py-4 border-b border-gray-800 flex-shrink-0 flex items-center gap-2 hover:bg-gray-800 transition-colors w-full text-left"
+      >
+        <Trello className="text-cyan-400 flex-shrink-0" size={22} />
+        {!collapsed && <span className="font-bold text-lg tracking-tight whitespace-nowrap">VibeBand</span>}
+      </button>
 
       {/* Env info */}
-      <EnvInfoBar />
+      {!collapsed && <EnvInfoBar />}
 
       {/* Nav icons */}
-      <nav className="flex flex-col gap-1 px-2 py-3">
-        <NavLink to="/" icon={<Home size={18} />} label="Home" />
-        <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" />
-        <NavLink to="/audit" icon={<ClipboardList size={18} />} label="Audit Log" />
+      <nav className="flex flex-col gap-1 px-2 py-3 flex-shrink-0">
+        <NavLink to="/" icon={<Home size={18} />} label="Home" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
+        <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
+        <NavLink to="/audit" icon={<ClipboardList size={18} />} label="Audit Log" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
         {/* Terminals toggle */}
         <button
           type="button"
@@ -75,13 +94,23 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
               : 'text-gray-400 hover:bg-gray-800 hover:text-white'
           }`}
         >
-          <Terminal size={18} />
-          <span>Terminals</span>
-          {terminalSessions.length > 0 && (
+          <Terminal size={18} className="flex-shrink-0" />
+          {!collapsed && <span>Terminals</span>}
+          {!collapsed && terminalSessions.length > 0 && (
             <span className="ml-auto bg-cyan-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full leading-none">
               {terminalSessions.length}
             </span>
           )}
+        </button>
+        {/* Projects icon — expands sidebar when collapsed */}
+        <button
+          type="button"
+          onClick={collapsed ? onToggleCollapse : undefined}
+          title={collapsed ? 'Expand to see Projects' : 'Projects'}
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors w-full text-left"
+        >
+          <Layers size={18} className="flex-shrink-0" />
+          {!collapsed && <span>Projects</span>}
         </button>
       </nav>
 
@@ -129,20 +158,22 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
 
       {/* Projects list */}
       <div className="flex-1 overflow-y-auto px-2 py-2">
-        <div className="flex items-center justify-between px-2 mb-2">
-          <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
-            Projects
-          </span>
-          <button
-            onClick={() => setShowNewBoard(true)}
-            className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-            title="New board"
-          >
-            <Plus size={15} />
-          </button>
-        </div>
+        {!collapsed && (
+          <div className="flex items-center justify-between px-2 mb-2">
+            <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
+              Projects
+            </span>
+            <button
+              onClick={() => setShowNewBoard(true)}
+              className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              title="New board"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+        )}
 
-        {projects.length === 0 && (
+        {!collapsed && projects.length === 0 && (
           <p className="text-xs text-gray-600 px-2">No projects yet</p>
         )}
 
@@ -153,15 +184,23 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
             params={{ boardId: String(p.id) }}
             className="group flex items-center justify-between px-2 py-1.5 rounded-md text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
             activeProps={{ className: 'flex items-center justify-between px-2 py-1.5 rounded-md text-sm bg-cyan-900/60 text-cyan-300' }}
+            title={collapsed ? p.name : undefined}
           >
-            <span className="truncate">{p.name}</span>
-            <button
-              onClick={(e) => handleDelete(e, p.id)}
-              className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition-opacity"
-              title="Delete project"
-            >
-              <Trash2 size={13} />
-            </button>
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="flex-shrink-0 w-6 h-6 rounded bg-cyan-800 flex items-center justify-center text-[10px] font-bold text-cyan-200 leading-none">
+                {projectInitials(p.name)}
+              </span>
+              {!collapsed && <span className="truncate">{p.name}</span>}
+            </span>
+            {!collapsed && (
+              <button
+                onClick={(e) => handleDelete(e, p.id)}
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:text-red-400 transition-opacity"
+                title="Delete project"
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
           </Link>
         ))}
 
@@ -207,20 +246,26 @@ function NavLink({
   to,
   icon,
   label,
+  collapsed,
+  onExpandRequest,
 }: {
   to: string
   icon: React.ReactNode
   label: string
+  collapsed?: boolean
+  onExpandRequest?: () => void
 }) {
   return (
     <Link
       to={to}
+      onClick={collapsed ? onExpandRequest : undefined}
       className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
       activeProps={{ className: 'flex items-center gap-3 px-3 py-2 rounded-md text-sm bg-gray-800 text-white' }}
       activeOptions={{ exact: true }}
+      title={collapsed ? label : undefined}
     >
       {icon}
-      <span>{label}</span>
+      {!collapsed && <span>{label}</span>}
     </Link>
   )
 }
