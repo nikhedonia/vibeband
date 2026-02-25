@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  writeFileSync,
 } from 'node:fs'
 import path from 'node:path'
 
@@ -241,6 +242,20 @@ export const readProjectFile = createServerFn({ method: 'GET' })
     } catch {
       throw new Error('File not readable')
     }
+  })
+
+export const writeProjectFile = createServerFn({ method: 'POST' })
+  .inputValidator(
+    (data: { rootPath: string; filePath: string; content: string }) => data,
+  )
+  .handler(async ({ data }) => {
+    const fullPath = path.resolve(path.join(data.rootPath, data.filePath))
+    const root = path.resolve(data.rootPath)
+    if (!fullPath.startsWith(root + path.sep) && fullPath !== root) {
+      throw new Error('Path traversal not allowed')
+    }
+    writeFileSync(fullPath, data.content, 'utf-8')
+    return { ok: true }
   })
 
 // ── Worktree listing & diff stats ─────────────────────────────────────────────
