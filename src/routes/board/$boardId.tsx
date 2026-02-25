@@ -193,7 +193,7 @@ function BoardPage() {
   async function refreshWorktrees(repoPath: string) {
     try {
       const { worktrees: wts } = await listWorktrees({ data: { repoPath } })
-      const projectSlug = slugify(project.name)
+      const projectSlug = `${slugify(project.name)}-${project.id}`
       const map: Record<string, WorktreeInfo> = {}
       for (const wt of wts) {
         // derive slug from path: /var/tmp/{projectSlug}/{branchSlug}
@@ -265,8 +265,8 @@ function BoardPage() {
 
   async function handleTicketMoved(ticket: Ticket, column: Column) {
     if (!localRepo) return
-    const projectSlug = slugify(project.name)
-    const ticketSlug = slugify(ticket.title) || `ticket-${ticket.id}`
+    const projectSlug = `${slugify(project.name)}-${project.id}`
+    const ticketSlug = `${slugify(ticket.title) || 'ticket'}-${ticket.id}`
     const colName = column.name.toLowerCase()
 
     if (colName === 'in progress') {
