@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createProject, deleteProject } from '../db/kanban'
 import type { TerminalSession } from '../contexts/TerminalSessions'
 import { useTerminalSessions } from '../contexts/TerminalSessions'
+import EnvInfoBar from './EnvInfoBar'
 
 interface Project {
   id: number
@@ -55,6 +56,9 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
           <span className="font-bold text-lg tracking-tight">VibeBand</span>
         </div>
       </div>
+
+      {/* Env info */}
+      <EnvInfoBar />
 
       {/* Nav icons */}
       <nav className="flex flex-col gap-1 px-2 py-3">
