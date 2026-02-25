@@ -1,10 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
-import XTermPkg from '@xterm/xterm'
-import FitAddonPkg from '@xterm/addon-fit'
-
-// @xterm packages ship as CJS; destructure from the default import
-const { Terminal: XTerm } = XTermPkg as unknown as { Terminal: typeof import('@xterm/xterm').Terminal }
-const { FitAddon } = FitAddonPkg as unknown as { FitAddon: typeof import('@xterm/addon-fit').FitAddon }
+import { Terminal as XTerm } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
 import { X } from 'lucide-react'
 import '@xterm/xterm/css/xterm.css'
 import {
