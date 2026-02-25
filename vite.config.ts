@@ -9,6 +9,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
+  optimizeDeps: {
+    include: ['@xterm/xterm', '@xterm/addon-fit'],
+  },
   plugins: [
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),

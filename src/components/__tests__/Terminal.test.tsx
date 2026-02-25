@@ -5,8 +5,8 @@ import React from 'react'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
 
-vi.mock('@xterm/xterm', () => ({
-  Terminal: vi.fn().mockImplementation(() => ({
+vi.mock('@xterm/xterm', () => {
+  const terminalMock = vi.fn().mockImplementation(() => ({
     loadAddon: vi.fn(),
     open: vi.fn(),
     focus: vi.fn(),
@@ -15,14 +15,20 @@ vi.mock('@xterm/xterm', () => ({
     dispose: vi.fn(),
     cols: 80,
     rows: 24,
-  })),
-}))
+  }))
+  return {
+    default: { Terminal: terminalMock },
+    Terminal: terminalMock,
+  }
+})
 
-vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn().mockImplementation(() => ({
-    fit: vi.fn(),
-  })),
-}))
+vi.mock('@xterm/addon-fit', () => {
+  const fitAddonMock = vi.fn().mockImplementation(() => ({ fit: vi.fn() }))
+  return {
+    default: { FitAddon: fitAddonMock },
+    FitAddon: fitAddonMock,
+  }
+})
 
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))
 
