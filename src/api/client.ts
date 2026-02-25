@@ -1,8 +1,13 @@
 export type { FileNode, WorktreeInfo } from '../db/worktree'
 export type { AuditEventType } from '../db/audit'
 
+const BASE_URL =
+  typeof window === 'undefined'
+    ? `http://localhost:${process.env.PORT ?? 3000}`
+    : ''
+
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(url, options)
+  const res = await fetch(`${BASE_URL}${url}`, options)
   if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
   if (res.status === 204) return undefined as T
   return res.json()
