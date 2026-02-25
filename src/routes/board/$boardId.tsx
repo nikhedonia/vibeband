@@ -9,8 +9,9 @@ import {
   PanelRight,
 } from 'lucide-react'
 import ProjectHealthBar from '../../components/ProjectHealthBar'
-import { getBoardData, updateProject } from '../../db/kanban'
-import { ensureRepoCloned, isRemoteUrl } from '../../db/worktree'
+import { getBoardData, updateProject } from '../../api/client'
+import { isRemoteUrl } from '../../db/worktree'
+import { ensureRepoCloned } from '../../api/client'
 import {
   createWorktreeApi,
   removeWorktreeApi,
@@ -26,14 +27,14 @@ import TerminalTabs from '../../components/TerminalTabs'
 import { useNotifications } from '../../components/Notifications'
 import { useTerminalSessions } from '../../contexts/TerminalSessions'
 import { slugify } from '../../utils/slugify'
-import { logAuditEvent } from '../../db/audit'
+import { logAuditEvent } from '../../api/client'
 
 export const Route = createFileRoute('/board/$boardId')({
   loader: async ({ params }) => {
     const projectId = Number(params.boardId)
     if (Number.isNaN(projectId)) throw notFound()
     try {
-      return await getBoardData({ data: { projectId } })
+      return await getBoardData(projectId)
     } catch {
       throw notFound()
     }
@@ -64,7 +65,7 @@ function RepoUrlEditor({
   const isRemote = saved.startsWith('http://') || saved.startsWith('https://')
 
   async function save() {
-    await updateProject({ data: { id: projectId, repoUrl: url } })
+    await updateProject(projectId, { repoUrl: url })
     setSaved(url)
     setEditing(false)
     onChange?.(url)
@@ -225,7 +226,7 @@ function BoardPage() {
     const projectSlug = `${slugify(project.name)}-${project.id}`
     try {
       notify(`Cloning repository…`, 'info')
-      const result = await ensureRepoCloned({ data: { repoUrl: url, projectSlug } })
+      const result = await ensureRepoCloned({ repoUrl: url, projectSlug })
       if (result.cloned) notify(`Repository cloned to ${result.path}`, 'success')
       return result.path
     } catch (e) {
@@ -316,20 +317,16 @@ function BoardPage() {
         if (result.removed) {
           notify(`Workspace destroyed: ${worktreePath}`, 'success')
           logAuditEvent({
-            data: {
               eventType: 'workspace_destroyed',
               message: `Workspace destroyed for ticket "${ticket.title}" (${worktreePath}), ${closedCount} terminal session${closedCount !== 1 ? 's' : ''} closed`,
-            },
-          }).catch(() => {})
+            }).catch(() => {})
         }
         refreshWorktrees(localRepo)
       } catch (e) {
         notify(`Workspace destruction error: ${e}`, 'error')
         logAuditEvent({
-          data: {
-            eventType: 'workspace_destroyed',
-            message: `Workspace destruction failed for ticket "${ticket.title}" (${worktreePath}): ${e}`,
-          },
+          eventType: 'workspace_destroyed',
+          message: `Workspace destruction failed for ticket "${ticket.title}" (${worktreePath}): ${e}`,
         }).catch(() => {})
       }
     }

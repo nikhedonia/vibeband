@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getEnvInfo } from '../db/env'
+import { getEnvInfo } from '../api/client'
 import { CircleDot, Container, Bot } from 'lucide-react'
 
 type EnvInfo = Awaited<ReturnType<typeof getEnvInfo>>

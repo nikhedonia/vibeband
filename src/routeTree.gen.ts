@@ -14,6 +14,30 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardBoardIdRouteImport } from './routes/board/$boardId'
+import { Route as ApiProjectsRouteImport } from './routes/api/projects'
+import { Route as ApiProjectsIdRouteImport } from './routes/api/projects/$id'
+import { Route as ApiProjectsIdBoardRouteImport } from './routes/api/projects/$id/board'
+import { Route as ApiColumnsRouteImport } from './routes/api/columns'
+import { Route as ApiColumnsIdRouteImport } from './routes/api/columns/$id'
+import { Route as ApiTicketsRouteImport } from './routes/api/tickets'
+import { Route as ApiTicketsIdRouteImport } from './routes/api/tickets/$id'
+import { Route as ApiAuditRouteImport } from './routes/api/audit'
+import { Route as ApiTerminalSessionsRouteImport } from './routes/api/terminal/sessions'
+import { Route as ApiTerminalSessionsSessionIdRouteImport } from './routes/api/terminal/sessions/$sessionId'
+import { Route as ApiTerminalSessionsSessionIdOutputRouteImport } from './routes/api/terminal/sessions/$sessionId/output'
+import { Route as ApiTerminalSessionsSessionIdInputRouteImport } from './routes/api/terminal/sessions/$sessionId/input'
+import { Route as ApiTerminalSessionsSessionIdResizeRouteImport } from './routes/api/terminal/sessions/$sessionId/resize'
+import { Route as ApiTerminalSessionsSessionIdMetaRouteImport } from './routes/api/terminal/sessions/$sessionId/meta'
+import { Route as ApiWorktreesRouteImport } from './routes/api/worktrees'
+import { Route as ApiWorktreesMainRouteImport } from './routes/api/worktrees/main'
+import { Route as ApiWorktreesDiffRouteImport } from './routes/api/worktrees/diff'
+import { Route as ApiWorktreesRemoveRouteImport } from './routes/api/worktrees/remove'
+import { Route as ApiReposCloneRouteImport } from './routes/api/repos/clone'
+import { Route as ApiFilesRouteImport } from './routes/api/files'
+import { Route as ApiFilesContentRouteImport } from './routes/api/files/content'
+import { Route as ApiEnvRouteImport } from './routes/api/env'
+import { Route as ApiEnvHealthCheckRouteImport } from './routes/api/env/health-check'
+import { Route as ApiEnvScriptsRouteImport } from './routes/api/env/scripts'
 
 const StatsRoute = StatsRouteImport.update({
   id: '/stats',
@@ -40,6 +64,126 @@ const BoardBoardIdRoute = BoardBoardIdRouteImport.update({
   path: '/board/$boardId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiProjectsRoute = ApiProjectsRouteImport.update({
+  id: '/api/projects',
+  path: '/api/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProjectsIdRoute = ApiProjectsIdRouteImport.update({
+  id: '/api/projects/$id',
+  path: '/api/projects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiProjectsIdBoardRoute = ApiProjectsIdBoardRouteImport.update({
+  id: '/api/projects/$id/board',
+  path: '/api/projects/$id/board',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiColumnsRoute = ApiColumnsRouteImport.update({
+  id: '/api/columns',
+  path: '/api/columns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiColumnsIdRoute = ApiColumnsIdRouteImport.update({
+  id: '/api/columns/$id',
+  path: '/api/columns/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTicketsRoute = ApiTicketsRouteImport.update({
+  id: '/api/tickets',
+  path: '/api/tickets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTicketsIdRoute = ApiTicketsIdRouteImport.update({
+  id: '/api/tickets/$id',
+  path: '/api/tickets/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuditRoute = ApiAuditRouteImport.update({
+  id: '/api/audit',
+  path: '/api/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsRoute = ApiTerminalSessionsRouteImport.update({
+  id: '/api/terminal/sessions',
+  path: '/api/terminal/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsSessionIdRoute = ApiTerminalSessionsSessionIdRouteImport.update({
+  id: '/api/terminal/sessions/$sessionId',
+  path: '/api/terminal/sessions/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsSessionIdOutputRoute = ApiTerminalSessionsSessionIdOutputRouteImport.update({
+  id: '/api/terminal/sessions/$sessionId/output',
+  path: '/api/terminal/sessions/$sessionId/output',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsSessionIdInputRoute = ApiTerminalSessionsSessionIdInputRouteImport.update({
+  id: '/api/terminal/sessions/$sessionId/input',
+  path: '/api/terminal/sessions/$sessionId/input',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsSessionIdResizeRoute = ApiTerminalSessionsSessionIdResizeRouteImport.update({
+  id: '/api/terminal/sessions/$sessionId/resize',
+  path: '/api/terminal/sessions/$sessionId/resize',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTerminalSessionsSessionIdMetaRoute = ApiTerminalSessionsSessionIdMetaRouteImport.update({
+  id: '/api/terminal/sessions/$sessionId/meta',
+  path: '/api/terminal/sessions/$sessionId/meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorktreesRoute = ApiWorktreesRouteImport.update({
+  id: '/api/worktrees',
+  path: '/api/worktrees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorktreesMainRoute = ApiWorktreesMainRouteImport.update({
+  id: '/api/worktrees/main',
+  path: '/api/worktrees/main',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorktreesDiffRoute = ApiWorktreesDiffRouteImport.update({
+  id: '/api/worktrees/diff',
+  path: '/api/worktrees/diff',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorktreesRemoveRoute = ApiWorktreesRemoveRouteImport.update({
+  id: '/api/worktrees/remove',
+  path: '/api/worktrees/remove',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReposCloneRoute = ApiReposCloneRouteImport.update({
+  id: '/api/repos/clone',
+  path: '/api/repos/clone',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesRoute = ApiFilesRouteImport.update({
+  id: '/api/files',
+  path: '/api/files',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesContentRoute = ApiFilesContentRouteImport.update({
+  id: '/api/files/content',
+  path: '/api/files/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEnvRoute = ApiEnvRouteImport.update({
+  id: '/api/env',
+  path: '/api/env',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEnvHealthCheckRoute = ApiEnvHealthCheckRouteImport.update({
+  id: '/api/env/health-check',
+  path: '/api/env/health-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEnvScriptsRoute = ApiEnvScriptsRouteImport.update({
+  id: '/api/env/scripts',
+  path: '/api/env/scripts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +191,30 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/board/$boardId': typeof BoardBoardIdRoute
+  '/api/projects': typeof ApiProjectsRoute
+  '/api/projects/$id': typeof ApiProjectsIdRoute
+  '/api/projects/$id/board': typeof ApiProjectsIdBoardRoute
+  '/api/columns': typeof ApiColumnsRoute
+  '/api/columns/$id': typeof ApiColumnsIdRoute
+  '/api/tickets': typeof ApiTicketsRoute
+  '/api/tickets/$id': typeof ApiTicketsIdRoute
+  '/api/audit': typeof ApiAuditRoute
+  '/api/terminal/sessions': typeof ApiTerminalSessionsRoute
+  '/api/terminal/sessions/$sessionId': typeof ApiTerminalSessionsSessionIdRoute
+  '/api/terminal/sessions/$sessionId/output': typeof ApiTerminalSessionsSessionIdOutputRoute
+  '/api/terminal/sessions/$sessionId/input': typeof ApiTerminalSessionsSessionIdInputRoute
+  '/api/terminal/sessions/$sessionId/resize': typeof ApiTerminalSessionsSessionIdResizeRoute
+  '/api/terminal/sessions/$sessionId/meta': typeof ApiTerminalSessionsSessionIdMetaRoute
+  '/api/worktrees': typeof ApiWorktreesRoute
+  '/api/worktrees/main': typeof ApiWorktreesMainRoute
+  '/api/worktrees/diff': typeof ApiWorktreesDiffRoute
+  '/api/worktrees/remove': typeof ApiWorktreesRemoveRoute
+  '/api/repos/clone': typeof ApiReposCloneRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/files/content': typeof ApiFilesContentRoute
+  '/api/env': typeof ApiEnvRoute
+  '/api/env/health-check': typeof ApiEnvHealthCheckRoute
+  '/api/env/scripts': typeof ApiEnvScriptsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +222,30 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/board/$boardId': typeof BoardBoardIdRoute
+  '/api/projects': typeof ApiProjectsRoute
+  '/api/projects/$id': typeof ApiProjectsIdRoute
+  '/api/projects/$id/board': typeof ApiProjectsIdBoardRoute
+  '/api/columns': typeof ApiColumnsRoute
+  '/api/columns/$id': typeof ApiColumnsIdRoute
+  '/api/tickets': typeof ApiTicketsRoute
+  '/api/tickets/$id': typeof ApiTicketsIdRoute
+  '/api/audit': typeof ApiAuditRoute
+  '/api/terminal/sessions': typeof ApiTerminalSessionsRoute
+  '/api/terminal/sessions/$sessionId': typeof ApiTerminalSessionsSessionIdRoute
+  '/api/terminal/sessions/$sessionId/output': typeof ApiTerminalSessionsSessionIdOutputRoute
+  '/api/terminal/sessions/$sessionId/input': typeof ApiTerminalSessionsSessionIdInputRoute
+  '/api/terminal/sessions/$sessionId/resize': typeof ApiTerminalSessionsSessionIdResizeRoute
+  '/api/terminal/sessions/$sessionId/meta': typeof ApiTerminalSessionsSessionIdMetaRoute
+  '/api/worktrees': typeof ApiWorktreesRoute
+  '/api/worktrees/main': typeof ApiWorktreesMainRoute
+  '/api/worktrees/diff': typeof ApiWorktreesDiffRoute
+  '/api/worktrees/remove': typeof ApiWorktreesRemoveRoute
+  '/api/repos/clone': typeof ApiReposCloneRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/files/content': typeof ApiFilesContentRoute
+  '/api/env': typeof ApiEnvRoute
+  '/api/env/health-check': typeof ApiEnvHealthCheckRoute
+  '/api/env/scripts': typeof ApiEnvScriptsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +254,37 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/stats': typeof StatsRoute
   '/board/$boardId': typeof BoardBoardIdRoute
+  '/api/projects': typeof ApiProjectsRoute
+  '/api/projects/$id': typeof ApiProjectsIdRoute
+  '/api/projects/$id/board': typeof ApiProjectsIdBoardRoute
+  '/api/columns': typeof ApiColumnsRoute
+  '/api/columns/$id': typeof ApiColumnsIdRoute
+  '/api/tickets': typeof ApiTicketsRoute
+  '/api/tickets/$id': typeof ApiTicketsIdRoute
+  '/api/audit': typeof ApiAuditRoute
+  '/api/terminal/sessions': typeof ApiTerminalSessionsRoute
+  '/api/terminal/sessions/$sessionId': typeof ApiTerminalSessionsSessionIdRoute
+  '/api/terminal/sessions/$sessionId/output': typeof ApiTerminalSessionsSessionIdOutputRoute
+  '/api/terminal/sessions/$sessionId/input': typeof ApiTerminalSessionsSessionIdInputRoute
+  '/api/terminal/sessions/$sessionId/resize': typeof ApiTerminalSessionsSessionIdResizeRoute
+  '/api/terminal/sessions/$sessionId/meta': typeof ApiTerminalSessionsSessionIdMetaRoute
+  '/api/worktrees': typeof ApiWorktreesRoute
+  '/api/worktrees/main': typeof ApiWorktreesMainRoute
+  '/api/worktrees/diff': typeof ApiWorktreesDiffRoute
+  '/api/worktrees/remove': typeof ApiWorktreesRemoveRoute
+  '/api/repos/clone': typeof ApiReposCloneRoute
+  '/api/files': typeof ApiFilesRoute
+  '/api/files/content': typeof ApiFilesContentRoute
+  '/api/env': typeof ApiEnvRoute
+  '/api/env/health-check': typeof ApiEnvHealthCheckRoute
+  '/api/env/scripts': typeof ApiEnvScriptsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
+  fullPaths: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId' | '/api/projects' | '/api/projects/$id' | '/api/projects/$id/board' | '/api/columns' | '/api/columns/$id' | '/api/tickets' | '/api/tickets/$id' | '/api/audit' | '/api/terminal/sessions' | '/api/terminal/sessions/$sessionId' | '/api/terminal/sessions/$sessionId/output' | '/api/terminal/sessions/$sessionId/input' | '/api/terminal/sessions/$sessionId/resize' | '/api/terminal/sessions/$sessionId/meta' | '/api/worktrees' | '/api/worktrees/main' | '/api/worktrees/diff' | '/api/worktrees/remove' | '/api/repos/clone' | '/api/files' | '/api/files/content' | '/api/env' | '/api/env/health-check' | '/api/env/scripts'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
-  id: '__root__' | '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId'
+  to: '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId' | '/api/projects' | '/api/projects/$id' | '/api/projects/$id/board' | '/api/columns' | '/api/columns/$id' | '/api/tickets' | '/api/tickets/$id' | '/api/audit' | '/api/terminal/sessions' | '/api/terminal/sessions/$sessionId' | '/api/terminal/sessions/$sessionId/output' | '/api/terminal/sessions/$sessionId/input' | '/api/terminal/sessions/$sessionId/resize' | '/api/terminal/sessions/$sessionId/meta' | '/api/worktrees' | '/api/worktrees/main' | '/api/worktrees/diff' | '/api/worktrees/remove' | '/api/repos/clone' | '/api/files' | '/api/files/content' | '/api/env' | '/api/env/health-check' | '/api/env/scripts'
+  id: '__root__' | '/' | '/audit' | '/settings' | '/stats' | '/board/$boardId' | '/api/projects' | '/api/projects/$id' | '/api/projects/$id/board' | '/api/columns' | '/api/columns/$id' | '/api/tickets' | '/api/tickets/$id' | '/api/audit' | '/api/terminal/sessions' | '/api/terminal/sessions/$sessionId' | '/api/terminal/sessions/$sessionId/output' | '/api/terminal/sessions/$sessionId/input' | '/api/terminal/sessions/$sessionId/resize' | '/api/terminal/sessions/$sessionId/meta' | '/api/worktrees' | '/api/worktrees/main' | '/api/worktrees/diff' | '/api/worktrees/remove' | '/api/repos/clone' | '/api/files' | '/api/files/content' | '/api/env' | '/api/env/health-check' | '/api/env/scripts'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +293,30 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   StatsRoute: typeof StatsRoute
   BoardBoardIdRoute: typeof BoardBoardIdRoute
+  ApiProjectsRoute: typeof ApiProjectsRoute
+  ApiProjectsIdRoute: typeof ApiProjectsIdRoute
+  ApiProjectsIdBoardRoute: typeof ApiProjectsIdBoardRoute
+  ApiColumnsRoute: typeof ApiColumnsRoute
+  ApiColumnsIdRoute: typeof ApiColumnsIdRoute
+  ApiTicketsRoute: typeof ApiTicketsRoute
+  ApiTicketsIdRoute: typeof ApiTicketsIdRoute
+  ApiAuditRoute: typeof ApiAuditRoute
+  ApiTerminalSessionsRoute: typeof ApiTerminalSessionsRoute
+  ApiTerminalSessionsSessionIdRoute: typeof ApiTerminalSessionsSessionIdRoute
+  ApiTerminalSessionsSessionIdOutputRoute: typeof ApiTerminalSessionsSessionIdOutputRoute
+  ApiTerminalSessionsSessionIdInputRoute: typeof ApiTerminalSessionsSessionIdInputRoute
+  ApiTerminalSessionsSessionIdResizeRoute: typeof ApiTerminalSessionsSessionIdResizeRoute
+  ApiTerminalSessionsSessionIdMetaRoute: typeof ApiTerminalSessionsSessionIdMetaRoute
+  ApiWorktreesRoute: typeof ApiWorktreesRoute
+  ApiWorktreesMainRoute: typeof ApiWorktreesMainRoute
+  ApiWorktreesDiffRoute: typeof ApiWorktreesDiffRoute
+  ApiWorktreesRemoveRoute: typeof ApiWorktreesRemoveRoute
+  ApiReposCloneRoute: typeof ApiReposCloneRoute
+  ApiFilesRoute: typeof ApiFilesRoute
+  ApiFilesContentRoute: typeof ApiFilesContentRoute
+  ApiEnvRoute: typeof ApiEnvRoute
+  ApiEnvHealthCheckRoute: typeof ApiEnvHealthCheckRoute
+  ApiEnvScriptsRoute: typeof ApiEnvScriptsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +356,174 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BoardBoardIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/projects': {
+      id: '/api/projects'
+      path: '/api/projects'
+      fullPath: '/api/projects'
+      preLoaderRoute: typeof ApiProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/projects/$id': {
+      id: '/api/projects/$id'
+      path: '/api/projects/$id'
+      fullPath: '/api/projects/$id'
+      preLoaderRoute: typeof ApiProjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/projects/$id/board': {
+      id: '/api/projects/$id/board'
+      path: '/api/projects/$id/board'
+      fullPath: '/api/projects/$id/board'
+      preLoaderRoute: typeof ApiProjectsIdBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/columns': {
+      id: '/api/columns'
+      path: '/api/columns'
+      fullPath: '/api/columns'
+      preLoaderRoute: typeof ApiColumnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/columns/$id': {
+      id: '/api/columns/$id'
+      path: '/api/columns/$id'
+      fullPath: '/api/columns/$id'
+      preLoaderRoute: typeof ApiColumnsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tickets': {
+      id: '/api/tickets'
+      path: '/api/tickets'
+      fullPath: '/api/tickets'
+      preLoaderRoute: typeof ApiTicketsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tickets/$id': {
+      id: '/api/tickets/$id'
+      path: '/api/tickets/$id'
+      fullPath: '/api/tickets/$id'
+      preLoaderRoute: typeof ApiTicketsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/audit': {
+      id: '/api/audit'
+      path: '/api/audit'
+      fullPath: '/api/audit'
+      preLoaderRoute: typeof ApiAuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions': {
+      id: '/api/terminal/sessions'
+      path: '/api/terminal/sessions'
+      fullPath: '/api/terminal/sessions'
+      preLoaderRoute: typeof ApiTerminalSessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions/$sessionId': {
+      id: '/api/terminal/sessions/$sessionId'
+      path: '/api/terminal/sessions/$sessionId'
+      fullPath: '/api/terminal/sessions/$sessionId'
+      preLoaderRoute: typeof ApiTerminalSessionsSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions/$sessionId/output': {
+      id: '/api/terminal/sessions/$sessionId/output'
+      path: '/api/terminal/sessions/$sessionId/output'
+      fullPath: '/api/terminal/sessions/$sessionId/output'
+      preLoaderRoute: typeof ApiTerminalSessionsSessionIdOutputRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions/$sessionId/input': {
+      id: '/api/terminal/sessions/$sessionId/input'
+      path: '/api/terminal/sessions/$sessionId/input'
+      fullPath: '/api/terminal/sessions/$sessionId/input'
+      preLoaderRoute: typeof ApiTerminalSessionsSessionIdInputRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions/$sessionId/resize': {
+      id: '/api/terminal/sessions/$sessionId/resize'
+      path: '/api/terminal/sessions/$sessionId/resize'
+      fullPath: '/api/terminal/sessions/$sessionId/resize'
+      preLoaderRoute: typeof ApiTerminalSessionsSessionIdResizeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/terminal/sessions/$sessionId/meta': {
+      id: '/api/terminal/sessions/$sessionId/meta'
+      path: '/api/terminal/sessions/$sessionId/meta'
+      fullPath: '/api/terminal/sessions/$sessionId/meta'
+      preLoaderRoute: typeof ApiTerminalSessionsSessionIdMetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worktrees': {
+      id: '/api/worktrees'
+      path: '/api/worktrees'
+      fullPath: '/api/worktrees'
+      preLoaderRoute: typeof ApiWorktreesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worktrees/main': {
+      id: '/api/worktrees/main'
+      path: '/api/worktrees/main'
+      fullPath: '/api/worktrees/main'
+      preLoaderRoute: typeof ApiWorktreesMainRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worktrees/diff': {
+      id: '/api/worktrees/diff'
+      path: '/api/worktrees/diff'
+      fullPath: '/api/worktrees/diff'
+      preLoaderRoute: typeof ApiWorktreesDiffRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/worktrees/remove': {
+      id: '/api/worktrees/remove'
+      path: '/api/worktrees/remove'
+      fullPath: '/api/worktrees/remove'
+      preLoaderRoute: typeof ApiWorktreesRemoveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/repos/clone': {
+      id: '/api/repos/clone'
+      path: '/api/repos/clone'
+      fullPath: '/api/repos/clone'
+      preLoaderRoute: typeof ApiReposCloneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files': {
+      id: '/api/files'
+      path: '/api/files'
+      fullPath: '/api/files'
+      preLoaderRoute: typeof ApiFilesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files/content': {
+      id: '/api/files/content'
+      path: '/api/files/content'
+      fullPath: '/api/files/content'
+      preLoaderRoute: typeof ApiFilesContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/env': {
+      id: '/api/env'
+      path: '/api/env'
+      fullPath: '/api/env'
+      preLoaderRoute: typeof ApiEnvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/env/health-check': {
+      id: '/api/env/health-check'
+      path: '/api/env/health-check'
+      fullPath: '/api/env/health-check'
+      preLoaderRoute: typeof ApiEnvHealthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/env/scripts': {
+      id: '/api/env/scripts'
+      path: '/api/env/scripts'
+      fullPath: '/api/env/scripts'
+      preLoaderRoute: typeof ApiEnvScriptsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +533,30 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   StatsRoute: StatsRoute,
   BoardBoardIdRoute: BoardBoardIdRoute,
+  ApiProjectsRoute: ApiProjectsRoute,
+  ApiProjectsIdRoute: ApiProjectsIdRoute,
+  ApiProjectsIdBoardRoute: ApiProjectsIdBoardRoute,
+  ApiColumnsRoute: ApiColumnsRoute,
+  ApiColumnsIdRoute: ApiColumnsIdRoute,
+  ApiTicketsRoute: ApiTicketsRoute,
+  ApiTicketsIdRoute: ApiTicketsIdRoute,
+  ApiAuditRoute: ApiAuditRoute,
+  ApiTerminalSessionsRoute: ApiTerminalSessionsRoute,
+  ApiTerminalSessionsSessionIdRoute: ApiTerminalSessionsSessionIdRoute,
+  ApiTerminalSessionsSessionIdOutputRoute: ApiTerminalSessionsSessionIdOutputRoute,
+  ApiTerminalSessionsSessionIdInputRoute: ApiTerminalSessionsSessionIdInputRoute,
+  ApiTerminalSessionsSessionIdResizeRoute: ApiTerminalSessionsSessionIdResizeRoute,
+  ApiTerminalSessionsSessionIdMetaRoute: ApiTerminalSessionsSessionIdMetaRoute,
+  ApiWorktreesRoute: ApiWorktreesRoute,
+  ApiWorktreesMainRoute: ApiWorktreesMainRoute,
+  ApiWorktreesDiffRoute: ApiWorktreesDiffRoute,
+  ApiWorktreesRemoveRoute: ApiWorktreesRemoveRoute,
+  ApiReposCloneRoute: ApiReposCloneRoute,
+  ApiFilesRoute: ApiFilesRoute,
+  ApiFilesContentRoute: ApiFilesContentRoute,
+  ApiEnvRoute: ApiEnvRoute,
+  ApiEnvHealthCheckRoute: ApiEnvHealthCheckRoute,
+  ApiEnvScriptsRoute: ApiEnvScriptsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

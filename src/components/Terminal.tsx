@@ -9,7 +9,7 @@ import {
   sendTerminalInput,
   resizeTerminalSession,
   stopTerminalSession,
-} from '../db/terminal'
+} from '../api/client'
 
 interface TerminalPanelProps {
   cwd: string
@@ -104,18 +104,18 @@ export default function TerminalPanel({
       if (sessionId) {
         // Reconnecting to existing PTY — just resize and start polling
         fitAddon.fit()
-        resizeTerminalSession({ data: { sessionId, cols: term.cols, rows: term.rows } })
+        resizeTerminalSession(sessionId, { cols: term.cols, rows: term.rows })
       } else {
         try {
-          const { sessionId: sid } = await startTerminalSession({ data: { cwd } })
+          const { sessionId: sid } = await startTerminalSession({ cwd })
           if (!alive) {
-            stopTerminalSession({ data: { sessionId: sid } })
+            stopTerminalSession(sid)
             return
           }
           sessionId = sid
           onBackendSessionStarted?.(sid)
           fitAddon.fit()
-          resizeTerminalSession({ data: { sessionId: sid, cols: term.cols, rows: term.rows } })
+          resizeTerminalSession(sid, { cols: term.cols, rows: term.rows })
         } catch {
           term.write('\r\n\x1b[31m[failed to start terminal session]\x1b[0m\r\n')
           return
@@ -125,7 +125,7 @@ export default function TerminalPanel({
       pollTimer = setInterval(async () => {
         if (!sessionId) return
         try {
-          const { output, alive } = await pollTerminalOutput({ data: { sessionId } })
+          const { output, alive } = await pollTerminalOutput(sessionId)
           if (output) term.write(output)
           if (!alive) {
             if (pollTimer) clearInterval(pollTimer)
@@ -141,13 +141,13 @@ export default function TerminalPanel({
     initSession()
 
     const disposeData = term.onData((data) => {
-      if (sessionId) sendTerminalInput({ data: { sessionId, input: data } })
+      if (sessionId) sendTerminalInput(sessionId, data)
     })
 
     const observer = new ResizeObserver(() => {
       fitAddon.fit()
       if (sessionId) {
-        resizeTerminalSession({ data: { sessionId, cols: term.cols, rows: term.rows } })
+        resizeTerminalSession(sessionId, { cols: term.cols, rows: term.rows })
       }
     })
     observer.observe(el)
@@ -157,7 +157,7 @@ export default function TerminalPanel({
       observer.disconnect()
       disposeData.dispose()
       if (pollTimer) clearInterval(pollTimer)
-      if (!detach && sessionId) stopTerminalSession({ data: { sessionId } })
+      if (!detach && sessionId) stopTerminalSession(sessionId)
       term.dispose()
     }
   }, [cwd, existingBackendSessionId])

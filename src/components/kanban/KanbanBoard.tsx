@@ -6,7 +6,7 @@ import {
   updateTicket,
   updateColumn,
   deleteColumn,
-} from '../../db/kanban'
+} from '../../api/client'
 import { slugify } from '../../utils/slugify'
 import { useNotifications } from '../Notifications'
 
@@ -100,7 +100,7 @@ export default function KanbanBoard({
     const colTickets = tickets.filter((t) => t.columnId === columnId)
     const position = colTickets.length
     const ticket = await createTicket({
-      data: { projectId, columnId, title: newTicketTitle.trim(), position },
+      projectId, columnId, title: newTicketTitle.trim(), position,
     })
     setTickets((prev) => [...prev, ticket])
     setNewTicketTitle('')
@@ -146,7 +146,7 @@ export default function KanbanBoard({
       prev.map((t) => (t.id === ticketId ? updatedTicket : t)),
     )
 
-    await updateTicket({ data: { id: ticketId, columnId, position: newPosition } })
+    await updateTicket(ticketId, { columnId, position: newPosition })
 
     // Notify parent for worktree management
     const col = columns.find((c) => c.id === columnId)
@@ -161,7 +161,7 @@ export default function KanbanBoard({
     if (!newColumnName.trim()) return
     const position = columns.length
     const col = await createColumn({
-      data: { projectId, name: newColumnName.trim(), position },
+      projectId, name: newColumnName.trim(), position,
     })
     setColumns((prev) => [...prev, col])
     setNewColumnName('')
@@ -170,7 +170,7 @@ export default function KanbanBoard({
 
   async function handleRenameColumn(id: number) {
     if (!editingColumnName.trim()) return
-    await updateColumn({ data: { id, name: editingColumnName.trim() } })
+    await updateColumn(id, { name: editingColumnName.trim() })
     setColumns((prev) =>
       prev.map((c) => (c.id === id ? { ...c, name: editingColumnName.trim() } : c)),
     )
@@ -178,7 +178,7 @@ export default function KanbanBoard({
   }
 
   async function handleDeleteColumn(id: number) {
-    await deleteColumn({ data: { id } })
+    await deleteColumn(id)
     setColumns((prev) => prev.filter((c) => c.id !== id))
     setTickets((prev) => prev.filter((t) => t.columnId !== id))
   }

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ClipboardList, Terminal, LogOut, Trash2, AlertTriangle } from 'lucide-react'
-import { listAuditEvents } from '../db/audit'
-import type { AuditEventType } from '../db/audit'
+import { listAuditEvents } from '../api/client'
+import type { AuditEventType } from '../api/client'
 
 export const Route = createFileRoute('/audit')({
   loader: async () => {

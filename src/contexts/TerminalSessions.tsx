@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { stopTerminalSession, registerSessionMeta, listTerminalSessions } from '../db/terminal'
+import { stopTerminalSession, registerSessionMeta, listTerminalSessions } from '../api/client'
 
 export interface TerminalSession {
   id: string
@@ -55,7 +55,7 @@ export function TerminalSessionsProvider({ children }: { children: React.ReactNo
     setSessions((prev) => {
       const session = prev.find((s) => s.id === id)
       if (session?.backendSessionId) {
-        stopTerminalSession({ data: { sessionId: session.backendSessionId } }).catch(() => {})
+        stopTerminalSession(session.backendSessionId).catch(() => {})
       }
       return prev.filter((s) => s.id !== id)
     })
@@ -65,16 +65,13 @@ export function TerminalSessionsProvider({ children }: { children: React.ReactNo
     setSessions((prev) => {
       const session = prev.find((s) => s.id === id)
       if (session) {
-        registerSessionMeta({
-          data: {
-            sessionId: backendSessionId,
+        registerSessionMeta(backendSessionId, {
             cwd: session.cwd,
             projectId: session.projectId,
             projectName: session.projectName,
             ticketId: session.ticketId,
             ticketTitle: session.ticketTitle,
-          },
-        }).catch(() => {})
+          }).catch(() => {})
       }
       return prev.map((s) => (s.id === id ? { ...s, backendSessionId } : s))
     })
@@ -87,7 +84,7 @@ export function TerminalSessionsProvider({ children }: { children: React.ReactNo
       count = toClose.length
       for (const s of toClose) {
         if (s.backendSessionId) {
-          stopTerminalSession({ data: { sessionId: s.backendSessionId, reason } }).catch(() => {})
+          stopTerminalSession(s.backendSessionId, reason).catch(() => {})
         }
       }
       return prev.filter((s) => s.ticketId !== ticketId)

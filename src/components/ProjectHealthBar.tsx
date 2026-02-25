@@ -11,7 +11,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { useProjectHealth, type HealthCheck } from '../hooks/useProjectHealth'
-import { runHealthCheck, getProjectScripts } from '../db/env'
+import { runHealthCheck, getProjectScripts } from '../api/client'
 
 type CheckStatus = 'idle' | 'running' | 'ok' | 'fail'
 
@@ -89,7 +89,7 @@ function PresetPicker({
 
   useEffect(() => {
     if (!open || !repoPath) return
-    getProjectScripts({ data: { repoPath } }).then(({ scripts, hasDockerfile }) => {
+    getProjectScripts(repoPath).then(({ scripts, hasDockerfile }) => {
       const p: Preset[] = []
       if ('test' in scripts) p.push({ label: 'Test', command: 'npm run test' })
       if ('build' in scripts) p.push({ label: 'Build', command: 'npm run build' })
@@ -150,7 +150,7 @@ function PresetPicker({
 function CheckRow({
   check,
   run,
-  repoPath,
+  repoPath: _repoPath,
   onChange,
   onDelete,
   onRun,
@@ -311,7 +311,7 @@ export default function ProjectHealthBar({
   async function runCheck(check: HealthCheck) {
     setRunStates((prev) => ({ ...prev, [check.id]: { status: 'running', output: '' } }))
     try {
-      const result = await runHealthCheck({ data: { command: check.command, cwd: repoPath } })
+      const result = await runHealthCheck({ command: check.command, cwd: repoPath })
       setRunStates((prev) => ({
         ...prev,
         [check.id]: { status: result.ok ? 'ok' : 'fail', output: result.output },

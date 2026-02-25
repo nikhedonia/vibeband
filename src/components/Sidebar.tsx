@@ -1,7 +1,7 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, ClipboardList } from 'lucide-react'
 import { useState } from 'react'
-import { createProject, deleteProject } from '../db/kanban'
+import { createProject, deleteProject } from '../api/client'
 import type { TerminalSession } from '../contexts/TerminalSessions'
 import { useTerminalSessions } from '../contexts/TerminalSessions'
 import EnvInfoBar from './EnvInfoBar'
@@ -32,7 +32,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
     e.preventDefault()
     if (!newBoardName.trim()) return
     setCreating(true)
-    const project = await createProject({ data: { name: newBoardName.trim() } })
+    const project = await createProject({ name: newBoardName.trim() })
     setCreating(false)
     setNewBoardName('')
     setShowNewBoard(false)
@@ -43,7 +43,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions }
   async function handleDelete(e: React.MouseEvent, id: number) {
     e.preventDefault()
     e.stopPropagation()
-    await deleteProject({ data: { id } })
+    await deleteProject(id)
     onProjectsChange()
   }
 
