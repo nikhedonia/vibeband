@@ -9,7 +9,7 @@ import {
   PanelRight,
 } from 'lucide-react'
 import ProjectHealthBar from '../../components/ProjectHealthBar'
-import { getBoardData, updateProject } from '../../api/client'
+import { updateProject } from '../../api/client'
 import { isRemoteUrl } from '../../utils/url'
 import { ensureRepoCloned } from '../../api/client'
 import {
@@ -28,13 +28,14 @@ import { useNotifications } from '../../components/Notifications'
 import { useTerminalSessions } from '../../contexts/TerminalSessions'
 import { slugify } from '../../utils/slugify'
 import { logAuditEvent } from '../../api/client'
+import { getBoardDataServerFn } from '../../api/serverFns'
 
 export const Route = createFileRoute('/board/$boardId')({
   loader: async ({ params }) => {
     const projectId = Number(params.boardId)
     if (Number.isNaN(projectId)) throw notFound()
     try {
-      return await getBoardData(projectId)
+      return await getBoardDataServerFn({ data: projectId })
     } catch {
       throw notFound()
     }

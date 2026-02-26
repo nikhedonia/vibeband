@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { FolderKanban, Plus } from 'lucide-react'
-import { getProjects } from '../api/client'
+import { getProjectsServerFn } from '../api/serverFns'
 
 export const Route = createFileRoute('/')({
   loader: async () => {
-    const projects = await getProjects()
+    const projects = await getProjectsServerFn()
     return { projects }
   },
   component: HomePage,
