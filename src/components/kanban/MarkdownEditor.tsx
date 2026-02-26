@@ -12,7 +12,7 @@ import {
   Save,
 } from 'lucide-react'
 import { updateTicket, deleteTicket } from '../../api/client'
-import { listProjectFiles, readProjectFile } from '../../api/client'
+import { listProjectFiles, readProjectFile, writeProjectFile } from '../../api/client'
 import type { FileNode } from '../../api/client'
 
 interface Ticket {
@@ -129,9 +129,7 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
     if (!openFile) return
     setSaving(true)
     try {
-      await writeProjectFile({
-        data: { rootPath: repoPath, filePath: openFile.path, content: editContent },
-      })
+      await writeProjectFile(repoPath, openFile.path, editContent)
       setOpenFile({ ...openFile, content: editContent })
       setEditing(false)
     } finally {

@@ -153,6 +153,16 @@ export async function readProjectFileFn(data: { rootPath: string; filePath: stri
   }
 }
 
+export async function writeProjectFileFn(data: { rootPath: string; filePath: string; content: string }) {
+  const fullPath = path.resolve(path.join(data.rootPath, data.filePath))
+  const root = path.resolve(data.rootPath)
+  if (!fullPath.startsWith(root + path.sep) && fullPath !== root) {
+    throw new Error('Path traversal not allowed')
+  }
+  writeFileSync(fullPath, data.content, 'utf-8')
+  return { ok: true }
+}
+
 export async function listWorktreesFn(data: { repoPath: string }) {
   if (!existsSync(data.repoPath)) return { worktrees: [] as WorktreeInfo[] }
   try {
@@ -204,5 +214,6 @@ export const ensureMainWorktree = ensureMainWorktreeFn
 export const ensureRepoCloned = ensureRepoClonedFn
 export const listProjectFiles = listProjectFilesFn
 export const readProjectFile = readProjectFileFn
+export const writeProjectFile = writeProjectFileFn
 export const listWorktrees = listWorktreesFn
 export const getWorktreeDiffStats = getWorktreeDiffStatsFn

@@ -15,6 +15,10 @@ const config = defineConfig({
   },
   ssr: {
     external: ['better-sqlite3'],
+    noExternal: ['@xterm/xterm', '@xterm/addon-fit'],
+    optimizeDeps: {
+      include: ['@xterm/xterm', '@xterm/addon-fit'],
+    },
   },
   plugins: [
     devtools(),

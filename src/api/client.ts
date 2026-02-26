@@ -88,6 +88,8 @@ export const listProjectFiles = (rootPath: string) =>
   apiFetch<{ files: any[] }>(`/api/files?rootPath=${encodeURIComponent(rootPath)}`)
 export const readProjectFile = (rootPath: string, filePath: string) =>
   apiFetch<{ content: string }>(`/api/files/content?rootPath=${encodeURIComponent(rootPath)}&filePath=${encodeURIComponent(filePath)}`)
+export const writeProjectFile = (rootPath: string, filePath: string, content: string) =>
+  apiFetch<{ ok: boolean }>('/api/files/content', { method: 'PUT', ...json({ rootPath, filePath, content }) })
 export const getWorktreeDiffStats = (data: { worktreePath: string; baseBranch?: string }) => {
   const params = new URLSearchParams({ worktreePath: data.worktreePath })
   if (data.baseBranch) params.set('baseBranch', data.baseBranch)
