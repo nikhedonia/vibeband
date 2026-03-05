@@ -54,3 +54,12 @@ export const tickets = sqliteTable('tickets', {
     sql`(unixepoch())`,
   ),
 })
+
+export const auditLog = sqliteTable('audit_log', {
+  id: integer({ mode: 'number' }).primaryKey({ autoIncrement: true }),
+  eventType: text('event_type').notNull(),
+  message: text().notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).default(
+    sql`(unixepoch())`,
+  ),
+})

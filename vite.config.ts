@@ -9,9 +9,20 @@ import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
+  optimizeDeps: {
+    include: ['@xterm/xterm', '@xterm/addon-fit'],
+    exclude: ['better-sqlite3'],
+  },
+  ssr: {
+    external: ['better-sqlite3'],
+    noExternal: ['@xterm/xterm', '@xterm/addon-fit'],
+    optimizeDeps: {
+      include: ['@xterm/xterm', '@xterm/addon-fit'],
+    },
+  },
   plugins: [
     devtools(),
-    nitro({ rollupConfig: { external: [/^@sentry\//] } }),
+    nitro({ rollupConfig: { external: [/^@sentry\//, 'better-sqlite3'] } }),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
     tanstackStart(),

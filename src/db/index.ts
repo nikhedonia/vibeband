@@ -45,6 +45,12 @@ sqlite.exec(`
     created_at INTEGER DEFAULT (unixepoch()),
     updated_at INTEGER DEFAULT (unixepoch())
   );
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at INTEGER DEFAULT (unixepoch())
+  );
 `)
 
 export const db = drizzle(sqlite, { schema })

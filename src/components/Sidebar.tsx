@@ -1,10 +1,14 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, Layers } from 'lucide-react'
+import { Home, BarChart2, Settings, Plus, Trello, Trash2, Terminal, X, ClipboardList, Layers } from 'lucide-react'
+import { useState } from 'react'
+import { createProject, deleteProject } from '../api/client'
+import type { TerminalSession } from '../contexts/TerminalSessions'
+import { useTerminalSessions } from '../contexts/TerminalSessions'
+import EnvInfoBar from './EnvInfoBar'
 
 function projectInitials(name: string): string {
-  // Split on spaces, hyphens, underscores, or camelCase boundaries
   const words = name
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase → words
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
     .split(/[\s\-_]+/)
     .filter(Boolean)
   if (words.length >= 2) {
@@ -12,10 +16,6 @@ function projectInitials(name: string): string {
   }
   return name.slice(0, 2).toUpperCase()
 }
-import { useState } from 'react'
-import { createProject, deleteProject } from '../db/kanban'
-import type { TerminalSession } from '../contexts/TerminalSessions'
-import { useTerminalSessions } from '../contexts/TerminalSessions'
 
 interface Project {
   id: number
@@ -45,7 +45,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
     e.preventDefault()
     if (!newBoardName.trim()) return
     setCreating(true)
-    const project = await createProject({ data: { name: newBoardName.trim() } })
+    const project = await createProject({ name: newBoardName.trim() })
     setCreating(false)
     setNewBoardName('')
     setShowNewBoard(false)
@@ -56,7 +56,7 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
   async function handleDelete(e: React.MouseEvent, id: number) {
     e.preventDefault()
     e.stopPropagation()
-    await deleteProject({ data: { id } })
+    await deleteProject(id)
     onProjectsChange()
   }
 
@@ -76,22 +76,14 @@ export default function Sidebar({ projects, onProjectsChange, terminalSessions, 
         {!collapsed && <span className="font-bold text-lg tracking-tight whitespace-nowrap">VibeBand</span>}
       </button>
 
+      {/* Env info */}
+      {!collapsed && <EnvInfoBar />}
+
       {/* Nav icons */}
       <nav className="flex flex-col gap-1 px-2 py-3 flex-shrink-0">
-        <NavLink
-          to="/"
-          icon={<Home size={18} />}
-          label="Home"
-          collapsed={collapsed}
-          onExpandRequest={onToggleCollapse}
-        />
-        <NavLink
-          to="/stats"
-          icon={<BarChart2 size={18} />}
-          label="Stats"
-          collapsed={collapsed}
-          onExpandRequest={onToggleCollapse}
-        />
+        <NavLink to="/" icon={<Home size={18} />} label="Home" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
+        <NavLink to="/stats" icon={<BarChart2 size={18} />} label="Stats" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
+        <NavLink to="/audit" icon={<ClipboardList size={18} />} label="Audit Log" collapsed={collapsed} onExpandRequest={onToggleCollapse} />
         {/* Terminals toggle */}
         <button
           type="button"
@@ -272,10 +264,11 @@ function NavLink({
   return (
     <Link
       to={to}
-      onClick={() => collapsed && onExpandRequest?.()}
+      onClick={collapsed ? onExpandRequest : undefined}
       className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
       activeProps={{ className: 'flex items-center gap-3 px-3 py-2 rounded-md text-sm bg-gray-800 text-white' }}
       activeOptions={{ exact: true }}
+      title={collapsed ? label : undefined}
     >
       <span className="flex-shrink-0">{icon}</span>
       {!collapsed && <span>{label}</span>}

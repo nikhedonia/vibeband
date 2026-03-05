@@ -11,9 +11,9 @@ import {
   ArrowLeft,
   Save,
 } from 'lucide-react'
-import { updateTicket, deleteTicket } from '../../db/kanban'
-import { listProjectFiles, readProjectFile, writeProjectFile } from '../../db/worktree'
-import type { FileNode } from '../../db/worktree'
+import { updateTicket, deleteTicket } from '../../api/client'
+import { listProjectFiles, readProjectFile, writeProjectFile } from '../../api/client'
+import type { FileNode } from '../../api/client'
 
 interface Ticket {
   id: number
@@ -107,16 +107,14 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
 
   useEffect(() => {
     setLoading(true)
-    listProjectFiles({ data: { rootPath: repoPath } })
+    listProjectFiles(repoPath)
       .then((r) => setFiles(r.files))
       .finally(() => setLoading(false))
   }, [repoPath])
 
   async function handleFileClick(filePath: string) {
     try {
-      const { content } = await readProjectFile({
-        data: { rootPath: repoPath, filePath },
-      })
+      const { content } = await readProjectFile(repoPath, filePath)
       setOpenFile({ path: filePath, content })
       setEditContent(content)
       setEditing(false)
@@ -131,9 +129,7 @@ function FileBrowser({ repoPath }: { repoPath: string }) {
     if (!openFile) return
     setSaving(true)
     try {
-      await writeProjectFile({
-        data: { rootPath: repoPath, filePath: openFile.path, content: editContent },
-      })
+      await writeProjectFile(repoPath, openFile.path, editContent)
       setOpenFile({ ...openFile, content: editContent })
       setEditing(false)
     } finally {
@@ -275,14 +271,14 @@ export default function MarkdownEditor({
   async function handleSave() {
     if (!ticket) return
     setSaving(true)
-    const updated = await updateTicket({ data: { id: ticket.id, title, content } })
+    const updated = await updateTicket(ticket.id, { title, content })
     setSaving(false)
     onSave({ ...ticket, title, content, updatedAt: updated?.updatedAt ?? null })
   }
 
   async function handleDelete() {
     if (!ticket) return
-    await deleteTicket({ data: { id: ticket.id } })
+    await deleteTicket(ticket.id)
     onDelete(ticket.id)
   }
 

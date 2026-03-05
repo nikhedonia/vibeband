@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from './Sidebar'
-import { getProjects } from '../db/kanban'
+import { getProjects } from '../api/client'
 import { NotificationsProvider } from './Notifications'
 import { TerminalSessionsProvider, useTerminalSessions } from '../contexts/TerminalSessions'
 

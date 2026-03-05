@@ -8,8 +8,17 @@ import {
   X,
   PanelRight,
 } from 'lucide-react'
-import { getBoardData, updateProject } from '../../db/kanban'
-import { createWorktree, ensureMainWorktree, removeWorktree, ensureRepoCloned, isRemoteUrl, listWorktrees, getWorktreeDiffStats } from '../../db/worktree'
+import ProjectHealthBar from '../../components/ProjectHealthBar'
+import { updateProject } from '../../api/client'
+import { isRemoteUrl } from '../../utils/url'
+import { ensureRepoCloned } from '../../api/client'
+import {
+  createWorktreeApi,
+  removeWorktreeApi,
+  ensureMainWorktreeApi,
+  listWorktreesApi,
+  getWorktreeDiffStatsApi,
+} from '../../api/worktreeApi'
 import type { WorktreeInfo } from '../../components/kanban/KanbanBoard'
 import KanbanBoard from '../../components/kanban/KanbanBoard'
 import type { KanbanBoardHandle } from '../../components/kanban/KanbanBoard'
@@ -18,13 +27,15 @@ import TerminalTabs from '../../components/TerminalTabs'
 import { useNotifications } from '../../components/Notifications'
 import { useTerminalSessions } from '../../contexts/TerminalSessions'
 import { slugify } from '../../utils/slugify'
+import { logAuditEvent } from '../../api/client'
+import { getBoardDataServerFn } from '../../api/serverFns'
 
 export const Route = createFileRoute('/board/$boardId')({
   loader: async ({ params }) => {
     const projectId = Number(params.boardId)
     if (Number.isNaN(projectId)) throw notFound()
     try {
-      return await getBoardData({ data: { projectId } })
+      return await getBoardDataServerFn({ data: projectId })
     } catch {
       throw notFound()
     }
@@ -55,7 +66,7 @@ function RepoUrlEditor({
   const isRemote = saved.startsWith('http://') || saved.startsWith('https://')
 
   async function save() {
-    await updateProject({ data: { id: projectId, repoUrl: url } })
+    await updateProject(projectId, { repoUrl: url })
     setSaved(url)
     setEditing(false)
     onChange?.(url)
@@ -191,15 +202,15 @@ function BoardPage() {
 
   async function refreshWorktrees(repoPath: string) {
     try {
-      const { worktrees: wts } = await listWorktrees({ data: { repoPath } })
-      const projectSlug = slugify(project.name)
+      const { worktrees: wts } = await listWorktreesApi({ repoPath })
+      const projectSlug = `${slugify(project.name)}-${project.id}`
       const map: Record<string, WorktreeInfo> = {}
       for (const wt of wts) {
         // derive slug from path: /var/tmp/{projectSlug}/{branchSlug}
         const branchSlug = wt.path.replace(`/var/tmp/${projectSlug}/`, '')
         if (!branchSlug || branchSlug === 'main' || branchSlug === 'repo') continue
         // fetch diff stats (non-blocking per worktree)
-        const stats = await getWorktreeDiffStats({ data: { worktreePath: wt.path } }).catch(() => ({ added: 0, deleted: 0, changed: 0 }))
+        const stats = await getWorktreeDiffStatsApi({ worktreePath: wt.path }).catch(() => ({ added: 0, deleted: 0, changed: 0 }))
         map[branchSlug] = { ...wt, ...stats }
       }
       setWorktrees(map)
@@ -213,10 +224,10 @@ function BoardPage() {
     if (!url) return undefined
     if (isLocalPath(url)) return url
     // Remote URL — clone/fetch
-    const projectSlug = slugify(project.name)
+    const projectSlug = `${slugify(project.name)}-${project.id}`
     try {
       notify(`Cloning repository…`, 'info')
-      const result = await ensureRepoCloned({ data: { repoUrl: url, projectSlug } })
+      const result = await ensureRepoCloned({ repoUrl: url, projectSlug })
       if (result.cloned) notify(`Repository cloned to ${result.path}`, 'success')
       return result.path
     } catch (e) {
@@ -263,17 +274,23 @@ function BoardPage() {
   }
 
   async function handleTicketMoved(ticket: Ticket, column: Column) {
-    if (!localRepo) return
-    const projectSlug = slugify(project.name)
-    const ticketSlug = slugify(ticket.title) || `ticket-${ticket.id}`
+    if (!localRepo) {
+      const colName = column.name.toLowerCase()
+      if (colName === 'in progress' || colName === 'done') {
+        notify('No repo linked — worktree skipped. Set a repo URL in project settings.', 'info')
+      }
+      return
+    }
+    const projectSlug = `${slugify(project.name)}-${project.id}`
+    const ticketSlug = `${slugify(ticket.title) || 'ticket'}-${ticket.id}`
     const colName = column.name.toLowerCase()
 
     if (colName === 'in progress') {
       // Create ticket worktree and ensure main worktree exists
       try {
         const [mainResult, ticketResult] = await Promise.all([
-          ensureMainWorktree({ data: { repoPath: localRepo, projectSlug } }),
-          createWorktree({ data: { repoPath: localRepo, projectSlug, branchSlug: ticketSlug } }),
+          ensureMainWorktreeApi({ repoPath: localRepo, projectSlug }),
+          createWorktreeApi({ repoPath: localRepo, projectSlug, branchSlug: ticketSlug }),
         ])
         if (mainResult.created) {
           notify(`Main worktree created: ${mainResult.path}`, 'info')
@@ -287,17 +304,31 @@ function BoardPage() {
       }
     } else if (colName === 'done') {
       // Close any open terminal sessions for this ticket
-      closeSessionsForTicket(ticket.id)
+      const closedCount = closeSessionsForTicket(ticket.id, 'workspace destroyed')
+      if (closedCount > 0) {
+        notify(
+          `Closing ${closedCount} terminal session${closedCount > 1 ? 's' : ''} for "${ticket.title}"…`,
+          'info',
+        )
+      }
       // Remove ticket worktree
       const worktreePath = `/var/tmp/${projectSlug}/${ticketSlug}`
       try {
-        const result = await removeWorktree({ data: { repoPath: localRepo, worktreePath } })
+        const result = await removeWorktreeApi({ repoPath: localRepo, worktreePath })
         if (result.removed) {
-          notify(`Worktree removed: ${worktreePath}`, 'info')
+          notify(`Workspace destroyed: ${worktreePath}`, 'success')
+          logAuditEvent({
+              eventType: 'workspace_destroyed',
+              message: `Workspace destroyed for ticket "${ticket.title}" (${worktreePath}), ${closedCount} terminal session${closedCount !== 1 ? 's' : ''} closed`,
+            }).catch(() => {})
         }
         refreshWorktrees(localRepo)
       } catch (e) {
-        notify(`Worktree removal error: ${e}`, 'error')
+        notify(`Workspace destruction error: ${e}`, 'error')
+        logAuditEvent({
+          eventType: 'workspace_destroyed',
+          message: `Workspace destruction failed for ticket "${ticket.title}" (${worktreePath}): ${e}`,
+        }).catch(() => {})
       }
     }
   }
@@ -319,18 +350,21 @@ function BoardPage() {
               onChange={handleRepoUrlChange}
             />
           </div>
-          <button
-            onClick={() => setEditorOpen((v) => !v)}
-            title={editorOpen ? 'Hide editor' : 'Show editor'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              editorOpen
-                ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
-                : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
-            }`}
-          >
-            <PanelRight size={16} />
-            <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <ProjectHealthBar projectId={project.id} repoPath={resolvedRepoPath} />
+            <button
+              onClick={() => setEditorOpen((v) => !v)}
+              title={editorOpen ? 'Hide editor' : 'Show editor'}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                editorOpen
+                  ? 'bg-cyan-700/40 text-cyan-300 hover:bg-cyan-700/60'
+                  : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+              }`}
+            >
+              <PanelRight size={16} />
+              <span className="text-xs">{editorOpen ? 'Hide' : 'Editor'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Kanban board */}
@@ -344,6 +378,7 @@ function BoardPage() {
             onTicketSelect={handleTicketSelect}
             onTicketMoved={handleTicketMoved}
             worktrees={worktrees}
+            terminalCountsByTicket={terminalCountsByTicket}
             onOpenTerminal={(path, ticket) => {
                 const id = addSession({
                   cwd: path,

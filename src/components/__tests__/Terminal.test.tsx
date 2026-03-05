@@ -19,9 +19,7 @@ vi.mock('@xterm/xterm', () => ({
 }))
 
 vi.mock('@xterm/addon-fit', () => ({
-  FitAddon: vi.fn().mockImplementation(() => ({
-    fit: vi.fn(),
-  })),
+  FitAddon: vi.fn().mockImplementation(() => ({ fit: vi.fn() })),
 }))
 
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))

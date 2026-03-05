@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { BarChart2, Columns, Ticket, FolderKanban } from 'lucide-react'
-import { getProjects } from '../db/kanban'
+import { getProjects } from '../api/client'
 
 export const Route = createFileRoute('/stats')({
   loader: async () => {
